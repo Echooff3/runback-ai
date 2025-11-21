@@ -1,5 +1,8 @@
 import * as fal from '@fal-ai/serverless-client';
 
+// Test model for connection validation
+const TEST_MODEL = 'fal-ai/fast-llm';
+
 export class FalClient {
   constructor(apiKey: string) {
     fal.config({
@@ -46,11 +49,7 @@ export class FalClient {
 
   async testConnection(): Promise<boolean> {
     try {
-      // Use a simple, fast model for testing
-      await this.sendMessage(
-        'fal-ai/fast-llm',
-        'Hello'
-      );
+      await this.sendMessage(TEST_MODEL, 'Hello');
       return true;
     } catch (error) {
       console.error('Fal.ai connection test failed:', error);

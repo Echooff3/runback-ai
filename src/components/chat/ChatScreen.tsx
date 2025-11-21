@@ -142,7 +142,7 @@ export default function ChatScreen() {
 
   const handleCopyMessage = (content: string) => {
     navigator.clipboard.writeText(content);
-    // TODO: Show toast notification
+    // Note: Toast notification to be implemented in Phase 4 (Polish & Optimization)
   };
 
   const handleNavigateResponse = (messageId: string, direction: 'prev' | 'next') => {
@@ -152,6 +152,20 @@ export default function ChatScreen() {
     const currentIndex = message.currentResponseIndex ?? 0;
     const newIndex = direction === 'prev' ? currentIndex - 1 : currentIndex + 1;
     setCurrentResponseIndex(messageId, newIndex);
+  };
+
+  // Helper to find user message for regeneration
+  const findUserMessageForResponse = (messageId: string): ChatMessage | undefined => {
+    return currentSession?.messages
+      .slice()
+      .reverse()
+      .find(m => m.role === 'user' && m.responses?.some(r => r.id === messageId));
+  };
+
+  // Helper to get current AI response content
+  const getCurrentResponseContent = (message: ChatMessage): string => {
+    const response = message.responses?.[message.currentResponseIndex ?? 0];
+    return response?.content || '';
   };
 
   // Get provider configuration status
@@ -249,21 +263,12 @@ export default function ChatScreen() {
                 key={message.id}
                 message={message}
                 onRegenerate={() => {
-                  // Find the user message that this response belongs to
-                  const userMessage = currentSession.messages
-                    .slice()
-                    .reverse()
-                    .find(m => m.role === 'user' && m.responses?.some(r => r.id === message.id));
+                  const userMessage = findUserMessageForResponse(message.id);
                   if (userMessage) {
                     handleRerunMessage(userMessage);
                   }
                 }}
-                onCopy={() => {
-                  const response = message.responses?.[message.currentResponseIndex ?? 0];
-                  if (response) {
-                    handleCopyMessage(response.content);
-                  }
-                }}
+                onCopy={() => handleCopyMessage(getCurrentResponseContent(message))}
                 onNavigateResponse={(direction) => handleNavigateResponse(message.id, direction)}
               />
             );

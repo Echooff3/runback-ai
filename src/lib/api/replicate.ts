@@ -1,5 +1,8 @@
 import Replicate from 'replicate';
 
+// Test model for connection validation
+const TEST_MODEL = 'meta/meta-llama-3-8b-instruct';
+
 export class ReplicateClient {
   private client: Replicate;
 
@@ -52,10 +55,7 @@ export class ReplicateClient {
 
   async testConnection(): Promise<boolean> {
     try {
-      await this.sendMessage(
-        'meta/meta-llama-3-8b-instruct',
-        'Hello'
-      );
+      await this.sendMessage(TEST_MODEL, 'Hello');
       return true;
     } catch (error) {
       console.error('Replicate connection test failed:', error);

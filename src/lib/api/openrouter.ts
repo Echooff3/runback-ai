@@ -26,6 +26,9 @@ export interface OpenRouterResponse {
   };
 }
 
+// Test model for connection validation
+const TEST_MODEL = 'openai/gpt-3.5-turbo';
+
 export class OpenRouterClient {
   private apiKey: string;
   private endpoint: string;
@@ -52,7 +55,7 @@ export class OpenRouterClient {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': window.location.origin,
+            'HTTP-Referer': typeof window !== 'undefined' ? window.location.origin : 'https://runback.ai',
             'X-Title': 'RunBack AI',
           },
         }
@@ -74,7 +77,7 @@ export class OpenRouterClient {
 
   async testConnection(): Promise<boolean> {
     try {
-      await this.sendMessage('openai/gpt-3.5-turbo', [
+      await this.sendMessage(TEST_MODEL, [
         { role: 'user', content: 'Hello' }
       ]);
       return true;
