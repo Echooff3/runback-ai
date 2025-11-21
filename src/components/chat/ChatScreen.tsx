@@ -1,11 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient } from '../../lib/api';
 import { getLastProvider, getLastModel } from '../../lib/storage/localStorage';
-import type { Provider, ChatMessage, ModelParameters } from '../../types';
+import { FalClient } from '../../lib/api/fal';
+import type { Provider, ChatMessage, ModelParameters, AIResponse } from '../../types';
 import SessionTabs from './SessionTabs';
 import ProviderSelector from './ProviderSelector';
 import ModelSelector from './ModelSelector';
@@ -23,7 +25,11 @@ export default function ChatScreen() {
     updateSessionSettings,
     addUserMessage,
     addAIResponse,
+    updateAIResponseStatus,
     setCurrentResponseIndex,
+    startPolling,
+    stopPolling,
+    stopAllPolling,
     setLoading,
     setError,
     clearError,
@@ -35,6 +41,14 @@ export default function ChatScreen() {
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const visibilityMapRef = useRef<Map<string, boolean>>(new Map());
+  
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      stopAllPolling();
+    };
+  }, [stopAllPolling]);
 
   // Load API configs and sessions on mount
   useEffect(() => {
@@ -113,25 +127,129 @@ export default function ChatScreen() {
     setLoading(true);
 
     try {
-      const aiClient = getAIClient();
-      const response = await aiClient.sendMessage({
-        provider: selectedProvider,
-        model: selectedModel,
-        userMessage: content,
-        additionalParameters: selectedProvider === 'fal' ? modelParameters : undefined,
-      });
+      // Use queue API for FAL, regular API for others
+      if (selectedProvider === 'fal') {
+        await handleFalQueueSubmission(userMessage, content);
+      } else {
+        const aiClient = getAIClient();
+        const response = await aiClient.sendMessage({
+          provider: selectedProvider,
+          model: selectedModel,
+          userMessage: content,
+        });
 
-      // Update generation number based on existing responses
-      const existingResponses = userMessage.responses?.length || 0;
-      response.generationNumber = existingResponses + 1;
+        // Update generation number based on existing responses
+        const existingResponses = userMessage.responses?.length || 0;
+        response.generationNumber = existingResponses + 1;
 
-      addAIResponse(userMessage.id, response);
+        addAIResponse(userMessage.id, response);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(errorMessage);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFalQueueSubmission = async (userMessage: ChatMessage, content: string) => {
+    const falConfig = apiConfigs.find(c => c.provider === 'fal');
+    if (!falConfig?.apiKey) {
+      throw new Error('FAL API key not configured');
+    }
+
+    const falClient = new FalClient(falConfig.apiKey);
+    const startTime = Date.now();
+
+    // Submit to queue
+    const { requestId } = await falClient.submitToQueue(
+      selectedModel,
+      content,
+      undefined,
+      modelParameters
+    );
+
+    // Create initial pending response
+    const existingResponses = userMessage.responses?.length || 0;
+    const responseId = uuidv4();
+    const pendingResponse: AIResponse = {
+      id: responseId,
+      content: 'Request submitted to queue...',
+      provider: 'fal',
+      model: selectedModel,
+      timestamp: new Date().toISOString(),
+      generationNumber: existingResponses + 1,
+      status: 'pending',
+      requestId,
+      logs: [],
+    };
+
+    addAIResponse(userMessage.id, pendingResponse);
+    setLoading(false);
+
+    // Start polling with viewport awareness
+    startFalPolling(userMessage.id, responseId, requestId, selectedModel, falClient, startTime);
+  };
+
+  const startFalPolling = (
+    userMessageId: string,
+    responseId: string,
+    requestId: string,
+    model: string,
+    falClient: FalClient,
+    startTime: number
+  ) => {
+    const pollInterval = setInterval(async () => {
+      // Check if response is visible
+      const isVisible = visibilityMapRef.current.get(responseId) ?? true;
+
+      // Skip polling if not visible (but keep interval running)
+      if (!isVisible) {
+        return;
+      }
+
+      try {
+        const statusResult = await falClient.checkQueueStatus(model, requestId);
+
+        // Update status and logs
+        updateAIResponseStatus(userMessageId, responseId, {
+          status: statusResult.status,
+          logs: statusResult.logs,
+        });
+
+        // If completed, get result and stop polling
+        if (statusResult.status === 'completed') {
+          const result = await falClient.getQueueResult(model, requestId);
+          const responseTime = Date.now() - startTime;
+
+          updateAIResponseStatus(userMessageId, responseId, {
+            content: result.content,
+            status: 'completed',
+            mediaAssets: result.mediaAssets,
+            metadata: {
+              responseTime,
+            },
+          });
+
+          clearInterval(pollInterval);
+          stopPolling(responseId);
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+        updateAIResponseStatus(userMessageId, responseId, {
+          status: 'failed',
+          content: err instanceof Error ? err.message : 'Failed to fetch result',
+        });
+        clearInterval(pollInterval);
+        stopPolling(responseId);
+      }
+    }, 10000); // Poll every 10 seconds
+
+    startPolling(responseId, pollInterval);
+  };
+
+  const handleVisibilityChange = (responseId: string, isVisible: boolean) => {
+    visibilityMapRef.current.set(responseId, isVisible);
   };
 
   const handleRerunMessage = async (message: ChatMessage) => {
@@ -141,19 +259,23 @@ export default function ChatScreen() {
     setLoading(true);
 
     try {
-      const aiClient = getAIClient();
-      const response = await aiClient.sendMessage({
-        provider: selectedProvider,
-        model: selectedModel,
-        userMessage: message.content,
-        additionalParameters: selectedProvider === 'fal' ? modelParameters : undefined,
-      });
+      // Use queue API for FAL, regular API for others
+      if (selectedProvider === 'fal') {
+        await handleFalQueueSubmission(message, message.content);
+      } else {
+        const aiClient = getAIClient();
+        const response = await aiClient.sendMessage({
+          provider: selectedProvider,
+          model: selectedModel,
+          userMessage: message.content,
+        });
 
-      // Update generation number
-      const existingResponses = message.responses?.length || 0;
-      response.generationNumber = existingResponses + 1;
+        // Update generation number
+        const existingResponses = message.responses?.length || 0;
+        response.generationNumber = existingResponses + 1;
 
-      addAIResponse(message.id, response);
+        addAIResponse(message.id, response);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(errorMessage);
@@ -301,6 +423,7 @@ export default function ChatScreen() {
         {currentSession?.messages.map((message) => {
           if (message.role === 'user') {
             const hasResponses = message.responses && message.responses.length > 0;
+            const currentResponse = message.responses?.[message.currentResponseIndex ?? 0];
             return (
               <div key={message.id}>
                 <UserMessage
@@ -308,12 +431,13 @@ export default function ChatScreen() {
                   onRerun={() => handleRerunMessage(message)}
                   onCopy={() => handleCopyMessage(message.content)}
                 />
-                {hasResponses && (
+                {hasResponses && currentResponse && (
                   <AIMessage
                     message={message}
                     onRegenerate={() => handleRerunMessage(message)}
                     onCopy={() => handleCopyMessage(getCurrentResponseContent(message))}
                     onNavigateResponse={(direction) => handleNavigateResponse(message.id, direction)}
+                    onVisibilityChange={(isVisible) => handleVisibilityChange(currentResponse.id, isVisible)}
                   />
                 )}
               </div>

@@ -2,6 +2,28 @@
 
 ## Recent Updates
 
+### 🚀 FAL Queue-Based Status Checking (November 2025)
+Implemented FAL queue API with viewport-aware polling and media asset display:
+
+**Key Features:**
+- 🔄 **Queue API Integration**: Uses `fal.queue.submit()`, `queue.status()`, and `queue.result()` for async processing
+- 👁️ **Viewport-Aware Polling**: Polls every 10 seconds only when message is visible (IntersectionObserver)
+- 🎬 **Media Asset Display**: Native HTML controls for images, videos, and audio with download buttons
+- 📊 **Real-Time Status**: Status badges (pending/queued/in_progress/completed/failed) with progress logs
+- 💾 **Download Support**: Click-to-download for all generated media assets
+- 🎨 **Seamless UX**: Non-blocking UI, automatic cleanup, graceful error handling
+
+**Implementation Details:**
+- **Types**: Added `QueueStatus`, `MediaAsset` types with `status`, `requestId`, `logs`, `mediaAssets` fields to `AIResponse`
+- **FAL Client**: New methods `submitToQueue()`, `checkQueueStatus()`, `getQueueResult()` with automatic media parsing
+- **Chat Store**: `updateAIResponseStatus()` for incremental updates, polling interval management
+- **UI Components**: Status badges, logs display, `<img>`, `<video controls>`, `<audio controls>` with hover download buttons
+- **Polling Logic**: 10-second intervals, visibility tracking, automatic cleanup on unmount/completion
+
+See implementation in `src/lib/api/fal.ts`, `src/components/chat/AIMessage.tsx`, and `src/components/chat/ChatScreen.tsx`.
+
+---
+
 ### 🎉 Enhanced Model Selector (November 2024)
 The model selector has been upgraded from a simple dropdown to a **full-screen modal with dynamic model fetching and fuzzy search**:
 
@@ -200,10 +222,17 @@ const replicate = new Replicate({ auth: apiKey });
 await replicate.run('meta/llama-2-70b-chat:latest', {...});
 ```
 
-**Fal.ai** (npm package):
+**Fal.ai** (npm package with queue API):
 ```typescript
-import * as fal from '@fal-ai/serverless-client';
+import { fal } from '@fal-ai/client';
 fal.config({ credentials: apiKey });
+
+// Queue-based async processing (NEW)
+const { request_id } = await fal.queue.submit('fal-ai/flux/dev', { input });
+const status = await fal.queue.status('fal-ai/flux/dev', { requestId: request_id });
+const result = await fal.queue.result('fal-ai/flux/dev', { requestId: request_id });
+
+// Legacy blocking method (still supported for LLMs)
 await fal.subscribe('fal-ai/fast-llm', {...});
 ```
 
@@ -263,10 +292,14 @@ App
 - [x] Re-run prompt functionality ⭐
 - [x] Response history navigation ⭐
 - [x] Loading states and error handling
-- [x] **Multi-tab chat sessions** ⭐ NEW
-- [x] **Persistent session storage (IndexedDB)** ⭐ NEW
-- [x] **Starred sessions with delete protection** ⭐ NEW
-- [x] **Session history management** ⭐ NEW
+- [x] **Multi-tab chat sessions** ⭐
+- [x] **Persistent session storage (IndexedDB)** ⭐
+- [x] **Starred sessions with delete protection** ⭐
+- [x] **Session history management** ⭐
+- [x] **FAL queue-based async processing** ⭐ NEW
+- [x] **Viewport-aware polling (10s intervals)** ⭐ NEW
+- [x] **Media asset display (image/video/audio)** ⭐ NEW
+- [x] **Real-time status updates with logs** ⭐ NEW
 
 ### Phase 3: Prompt Management (2-3 weeks)
 - [ ] System prompts CRUD
@@ -695,6 +728,217 @@ Database: runback_db (v1)
 4. Can star/unstar any session
 5. Can delete unstarred sessions (with confirmation)
 6. Can reopen closed sessions (adds back to tabs)
+
+---
+
+## Recent Implementation: FAL Queue API Integration (November 2025)
+
+### Overview
+Implemented FAL's queue-based API for asynchronous request processing with real-time status updates, viewport-aware polling, and media asset display. This enables support for long-running FAL models (image generation, video, audio) with a non-blocking user experience.
+
+### Features Implemented
+
+#### 1. **Queue API Methods in FalClient**
+- **File**: `src/lib/api/fal.ts`
+- **`submitToQueue()`**: Submits requests to FAL queue using `fal.queue.submit()`, returns `requestId`
+- **`checkQueueStatus()`**: Polls queue status using `fal.queue.status()`, maps FAL status to internal types
+- **`getQueueResult()`**: Retrieves completed results using `fal.queue.result()`, parses media assets
+- Media detection supports:
+  - Images: `images[]` array, single `image` field
+  - Video: `video` object or string
+  - Audio: `audio` object or string
+
+#### 2. **Extended Type Definitions**
+- **File**: `src/types/index.ts`
+- **`QueueStatus`**: `'pending' | 'queued' | 'in_progress' | 'completed' | 'failed'`
+- **`MediaAsset`**: Interface with `type`, `url`, `contentType`, `filename` fields
+- **AIResponse Extensions**: Added `status`, `requestId`, `logs`, `mediaAssets` fields
+
+#### 3. **Enhanced Chat Store**
+- **File**: `src/stores/chatStore.ts`
+- **`pollingIntervals`**: Map tracking active polling timers per response
+- **`updateAIResponseStatus()`**: Incremental status updates without replacing entire response
+- **`startPolling()`, `stopPolling()`, `stopAllPolling()`**: Polling lifecycle management
+- Automatic cleanup on component unmount
+
+#### 4. **Viewport-Aware Polling**
+- **File**: `src/components/chat/ChatScreen.tsx`
+- IntersectionObserver tracks message visibility
+- Polls every 10 seconds when message is in viewport
+- Skips polling when message scrolled out of view (but keeps interval running)
+- Visibility map stored in `useRef` for efficient tracking
+- Polling stops automatically on completion or error
+
+#### 5. **Enhanced AIMessage Component**
+- **File**: `src/components/chat/AIMessage.tsx`
+- **Status Badges**: Color-coded badges for each status with animated spinner for `in_progress`
+- **Logs Display**: Scrollable container showing real-time logs with monospace font
+- **Media Asset Display**:
+  - Images: `<img>` with lazy loading, hover-to-show download button overlay
+  - Video: `<video controls>` with native playback controls and download button
+  - Audio: `<audio controls>` with inline download button
+- **Download Handler**: Fetches asset as Blob, creates object URL, triggers download
+
+### Request Flow
+
+1. **Queue Submission**:
+   - User sends message with FAL provider
+   - `handleFalQueueSubmission()` called instead of blocking API
+   - `falClient.submitToQueue()` → receives `requestId`
+   - Create pending AIResponse with `status: 'pending'`, `requestId`
+   - Add response to store → User sees status badge immediately
+   - `setLoading(false)` → Input unlocks (non-blocking)
+
+2. **Polling Loop**:
+   - `startFalPolling()` creates 10-second `setInterval`
+   - Each tick:
+     - Check `visibilityMapRef` → Skip if not visible
+     - Call `falClient.checkQueueStatus()` → Get status and logs
+     - `updateAIResponseStatus()` → Update status badge and logs display
+     - If `status === 'completed'`:
+       - Call `falClient.getQueueResult()` → Get content and media assets
+       - Update response with final data
+       - Stop polling, clear interval
+
+3. **Visibility Tracking**:
+   - AIMessage uses IntersectionObserver (10% threshold)
+   - Calls `onVisibilityChange(responseId, isVisible)` on visibility change
+   - ChatScreen stores in `visibilityMapRef.current.set(responseId, isVisible)`
+   - Polling loop checks map before each API call
+
+4. **Media Asset Rendering**:
+   - `mediaAssets[]` parsed from FAL result
+   - Images: Rendered in grid with rounded corners, download overlay on hover
+   - Video: Full-width with native controls, download button overlay
+   - Audio: Inline controls with adjacent download button
+   - Download: Fetch → Blob → Object URL → `<a>` click → Cleanup
+
+### Data Structures
+
+**AIResponse (Extended)**:
+```typescript
+interface AIResponse {
+  id: string;
+  content: string;
+  provider: Provider;
+  model?: string;
+  timestamp: string;
+  generationNumber: number;
+  status?: 'pending' | 'queued' | 'in_progress' | 'completed' | 'failed';  // NEW
+  requestId?: string;           // NEW - FAL queue request ID
+  logs?: string[];              // NEW - Real-time progress logs
+  mediaAssets?: MediaAsset[];   // NEW - Generated images/video/audio
+  metadata?: {
+    tokenCount?: number;
+    responseTime?: number;
+    cost?: number;
+  };
+}
+```
+
+**MediaAsset**:
+```typescript
+interface MediaAsset {
+  type: 'image' | 'video' | 'audio';
+  url: string;              // FAL CDN URL
+  contentType?: string;     // MIME type (e.g., 'image/png')
+  filename?: string;        // For download
+}
+```
+
+### User Experience
+
+**Before (Blocking)**:
+1. User sends prompt → Loading indicator
+2. Wait 30-60 seconds for image generation
+3. Result appears → Can send next message
+
+**After (Non-Blocking with Queue)**:
+1. User sends prompt → Status badge appears immediately
+2. Input unlocks → Can send more messages or scroll
+3. Status updates: "pending" → "queued" → "in_progress"
+4. Logs show real-time progress (if available)
+5. Only polls when message is visible (saves API calls)
+6. Result appears with media assets and download buttons
+
+### Technical Decisions
+
+**Why Queue API over Subscribe?**
+- `subscribe()` blocks for entire duration (30-60s for image generation)
+- Queue API returns immediately with `requestId`
+- Enables non-blocking UI and multiple concurrent requests
+- Better for long-running FAL models (FLUX, Stable Diffusion, video, etc.)
+
+**Why 10-Second Poll Interval?**
+- Balance between responsiveness and API quota
+- FAL queue status is cached server-side (frequent polls don't help)
+- Most models complete within 30-120 seconds (3-12 polls)
+- User can send other messages while waiting
+
+**Why Viewport-Aware Polling?**
+- Saves API calls when user scrolls away
+- Prevents unnecessary polling for old messages
+- User typically only cares about most recent requests
+- IntersectionObserver is performant and native
+
+**Why Not WebSockets?**
+- FAL queue API uses HTTP polling (no WebSocket endpoint)
+- Simpler implementation without connection management
+- Works reliably with firewalls and proxies
+- Polling only when visible keeps it efficient
+
+**Why Download Instead of Direct Display?**
+- FAL CDN URLs may expire after 24-48 hours
+- Users may want to save generated assets permanently
+- Browser download provides better progress feedback
+- Works offline after download
+
+### Files Modified/Created
+
+**Modified**:
+- `src/types/index.ts` - Added `QueueStatus`, `MediaAsset` types
+- `src/lib/api/fal.ts` - Added `submitToQueue()`, `checkQueueStatus()`, `getQueueResult()`
+- `src/stores/chatStore.ts` - Added `updateAIResponseStatus()`, polling management
+- `src/components/chat/AIMessage.tsx` - Added status badges, logs, media display, downloads
+- `src/components/chat/ChatScreen.tsx` - Added queue submission flow, viewport-aware polling
+
+**No New Files Created** - All integrated into existing architecture
+
+### Testing Recommendations
+
+1. **Queue Submission**: Send FAL request, verify immediate pending response
+2. **Status Updates**: Watch status change from pending → queued → in_progress → completed
+3. **Logs Display**: Verify logs appear and update in real-time
+4. **Visibility Polling**: Scroll message out of view, verify polling pauses (check Network tab)
+5. **Media Display**: Test image, video, audio models, verify native controls work
+6. **Download**: Click download buttons, verify files save with correct names
+7. **Multiple Requests**: Send multiple FAL requests, verify independent polling
+8. **Error Handling**: Test with invalid model, verify failed status appears
+9. **Cleanup**: Switch sessions or unmount, verify no console errors from lingering intervals
+10. **Browser Refresh**: Verify pending requests show status but don't auto-resume polling
+
+### Known Limitations
+
+- Polling does NOT resume after browser refresh (pending requests stay "pending")
+- No retry mechanism for failed status checks
+- No progress percentage (FAL doesn't provide this)
+- Download requires CORS-enabled FAL URLs (works with official FAL CDN)
+- Media assets not saved to IndexedDB (URLs only, may expire)
+- No queue position display (FAL doesn't expose this)
+- Logs may be empty for some models (FAL API limitation)
+
+### Future Enhancements
+
+- Resume polling for pending requests on page load (check IndexedDB for `status !== 'completed'`)
+- Retry failed status checks with exponential backoff
+- Cache downloaded media in IndexedDB for offline access
+- Show queue position if FAL API exposes it
+- Batch status checks for multiple pending requests
+- User preference for poll interval (5s/10s/30s)
+- Cancel/abort queued requests
+- Webhook support (if user provides endpoint)
+
+---
 
 ### Technical Decisions
 

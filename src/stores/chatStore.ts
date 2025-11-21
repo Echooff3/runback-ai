@@ -20,6 +20,7 @@ interface ChatState {
   currentSession: ChatSession | null;
   isLoading: boolean;
   error: string | null;
+  pollingIntervals: Map<string, ReturnType<typeof setInterval>>;
   
   // Session management
   loadSessions: () => Promise<void>;
@@ -36,7 +37,13 @@ interface ChatState {
   // Message actions
   addUserMessage: (content: string) => ChatMessage;
   addAIResponse: (userMessageId: string, response: AIResponse) => void;
+  updateAIResponseStatus: (userMessageId: string, responseId: string, updates: Partial<AIResponse>) => void;
   setCurrentResponseIndex: (messageId: string, index: number) => void;
+  
+  // Polling management
+  startPolling: (responseId: string, interval: ReturnType<typeof setInterval>) => void;
+  stopPolling: (responseId: string) => void;
+  stopAllPolling: () => void;
   
   // UI state
   setLoading: (loading: boolean) => void;
@@ -53,6 +60,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   currentSession: null,
   isLoading: false,
   error: null,
+  pollingIntervals: new Map(),
   
   loadSessions: async () => {
     try {
@@ -317,6 +325,46 @@ export const useChatStore = create<ChatState>((set, get) => ({
       console.error('Failed to save session:', err)
     );
   },
+
+  updateAIResponseStatus: (userMessageId: string, responseId: string, updates: Partial<AIResponse>) => {
+    const state = get();
+    if (!state.currentSession) {
+      throw new Error('No active session');
+    }
+    
+    const messages = state.currentSession.messages.map(msg => {
+      if (msg.id === userMessageId && msg.role === 'user') {
+        const responses = (msg.responses || []).map(resp => {
+          if (resp.id === responseId) {
+            return { ...resp, ...updates };
+          }
+          return resp;
+        });
+        return { ...msg, responses };
+      }
+      return msg;
+    });
+    
+    const updatedSession = {
+      ...state.currentSession,
+      messages,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Update in memory
+    set({ currentSession: updatedSession });
+    
+    // Update sessions array
+    const updatedSessions = state.sessions.map(s => 
+      s.id === updatedSession.id ? updatedSession : s
+    );
+    set({ sessions: updatedSessions });
+    
+    // Save to DB (async, don't wait)
+    saveSessionToDB(updatedSession).catch(err => 
+      console.error('Failed to save session:', err)
+    );
+  },
   
   setCurrentResponseIndex: (messageId: string, index: number) => {
     const state = get();
@@ -345,6 +393,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
       s.id === updatedSession.id ? updatedSession : s
     );
     set({ sessions: updatedSessions });
+  },
+
+  startPolling: (responseId: string, interval: ReturnType<typeof setInterval>) => {
+    const state = get();
+    state.pollingIntervals.set(responseId, interval);
+  },
+
+  stopPolling: (responseId: string) => {
+    const state = get();
+    const interval = state.pollingIntervals.get(responseId);
+    if (interval) {
+      clearInterval(interval);
+      state.pollingIntervals.delete(responseId);
+    }
+  },
+
+  stopAllPolling: () => {
+    const state = get();
+    state.pollingIntervals.forEach(interval => clearInterval(interval));
+    state.pollingIntervals.clear();
   },
   
   setLoading: (loading: boolean) => {

@@ -169,6 +169,11 @@ class ParameterManager {
    */
   isValid(): boolean {
     for (const [key, constraints] of Object.entries(this.schema)) {
+      // Skip 'prompt' field - it's optional since users can provide it from chat or settings
+      if (key === 'prompt') {
+        continue;
+      }
+      
       if (constraints.required) {
         const param = this.parameters.get(key);
         if (!param || !param.valid || param.value === undefined) {
@@ -218,13 +223,13 @@ class ParameterManager {
     value: any,
     constraints: ParameterConstraints
   ): { valid: boolean; error?: string } {
-    // Check required
-    if (constraints.required && (value === undefined || value === null || value === '')) {
+    // Skip required check for 'prompt' - it's optional since users can provide it from chat or settings
+    if (name !== 'prompt' && constraints.required && (value === undefined || value === null || value === '')) {
       return { valid: false, error: `${name} is required` };
     }
 
     // Allow undefined/null for optional fields
-    if (value === undefined || value === null) {
+    if (value === undefined || value === null || value === '') {
       return { valid: true };
     }
 

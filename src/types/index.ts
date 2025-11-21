@@ -47,6 +47,15 @@ export interface SlashPrompt {
   isDefault: boolean;
 }
 
+export type QueueStatus = 'pending' | 'queued' | 'in_progress' | 'completed' | 'failed';
+
+export interface MediaAsset {
+  type: 'image' | 'video' | 'audio';
+  url: string;
+  contentType?: string;
+  filename?: string;
+}
+
 export interface AIResponse {
   id: string;
   content: string;
@@ -54,6 +63,10 @@ export interface AIResponse {
   model?: string;
   timestamp: string;
   generationNumber: number;
+  status?: QueueStatus;
+  requestId?: string;
+  logs?: string[];
+  mediaAssets?: MediaAsset[];
   metadata?: {
     tokenCount?: number;
     responseTime?: number;

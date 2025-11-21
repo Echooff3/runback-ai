@@ -56,8 +56,8 @@ Schema:
 Generated HTML:
 <div class="space-y-4">
   <div>
-    <label class="block text-sm font-medium mb-1">Prompt *</label>
-    <textarea id="prompt" rows="3" class="w-full px-3 py-2 border rounded-lg" required></textarea>
+    <label class="block text-sm font-medium mb-1">Prompt</label>
+    <textarea id="prompt" rows="3" class="w-full px-3 py-2 border rounded-lg"></textarea>
     <p class="text-xs text-gray-500 mt-1">The text prompt to generate the image from</p>
   </div>
   
@@ -267,16 +267,17 @@ REQUIREMENTS:
 1. Generate clean, semantic HTML with Tailwind CSS classes (already available)
 2. Use appropriate input types: text, number, range, select, checkbox, textarea
 3. Include labels, descriptions, and validation hints
-4. Mark required fields with asterisk (*)
-5. Use the global ParameterAPI to set/get parameter values:
+4. DO NOT mark fields as required or add asterisks - all fields should be optional (the user can provide prompt from chat or settings)
+5. DO NOT add the 'required' attribute to any input fields
+6. Use the global ParameterAPI to set/get parameter values:
    - ParameterAPI.setParameter(name, value) - set a parameter
    - ParameterAPI.getParameter(name) - get current value
    - ParameterAPI.validateParameter(name, value) - validate before setting
-6. Add event listeners to update parameters on change
-7. For enums, use <select> dropdowns
-8. For numbers with min/max, consider using range sliders with value display
-9. Show helpful descriptions from the schema
-10. Use dark mode compatible colors (text-gray-900 dark:text-gray-100, etc.)
+7. Add event listeners to update parameters on change
+8. For enums, use <select> dropdowns
+9. For numbers with min/max, consider using range sliders with value display
+10. Show helpful descriptions from the schema
+11. Use dark mode compatible colors (text-gray-900 dark:text-gray-100, etc.)
 
 STYLING CLASSES TO USE:
 - Container: space-y-4
