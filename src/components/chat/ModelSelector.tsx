@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 import type { Provider } from '../../types';
-import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
+import ModelSelectorModal from './ModelSelectorModal';
 
 interface ModelSelectorProps {
   provider: Provider;
@@ -13,38 +14,89 @@ export default function ModelSelector({
   selectedModel, 
   onModelChange 
 }: ModelSelectorProps) {
-  const getModelsForProvider = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Get provider color
+  const getProviderColor = () => {
     switch (provider) {
       case 'openrouter':
-        return OPENROUTER_MODELS;
+        return {
+          bg: 'bg-blue-600',
+          hover: 'hover:bg-blue-700',
+          active: 'active:bg-blue-800',
+          ring: 'focus:ring-blue-500'
+        };
       case 'replicate':
-        return REPLICATE_MODELS;
+        return {
+          bg: 'bg-purple-600',
+          hover: 'hover:bg-purple-700',
+          active: 'active:bg-purple-800',
+          ring: 'focus:ring-purple-500'
+        };
       case 'fal':
-        return FAL_MODELS;
+        return {
+          bg: 'bg-green-600',
+          hover: 'hover:bg-green-700',
+          active: 'active:bg-green-800',
+          ring: 'focus:ring-green-500'
+        };
       default:
-        return [];
+        return {
+          bg: 'bg-indigo-600',
+          hover: 'hover:bg-indigo-700',
+          active: 'active:bg-indigo-800',
+          ring: 'focus:ring-indigo-500'
+        };
     }
   };
 
-  const models = getModelsForProvider();
+  const colors = getProviderColor();
+
+  // Get display name for selected model
+  const getModelDisplayName = () => {
+    if (!selectedModel) return 'Select model';
+    
+    // Extract model name from ID (e.g., "openai/gpt-4" -> "gpt-4")
+    const parts = selectedModel.split('/');
+    const modelName = parts[parts.length - 1];
+    
+    // Remove version/hash suffix if present (e.g., "model:abc123" -> "model")
+    const cleanName = modelName.split(':')[0];
+    
+    // Format common model names
+    const formatted = cleanName
+      .replace(/gpt-(\d+)/i, 'GPT-$1')
+      .replace(/claude-(\d+)/i, 'Claude $1')
+      .replace(/llama-(\d+)/i, 'Llama $1')
+      .replace(/mixtral/i, 'Mixtral')
+      .replace(/mistral/i, 'Mistral')
+      .replace(/gemini/i, 'Gemini');
+    
+    return formatted;
+  };
 
   return (
-    <div className="relative inline-block">
-      <select
-        value={selectedModel}
-        onChange={(e) => onModelChange(e.target.value)}
-        className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors cursor-pointer"
+    <>
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className={`inline-flex items-center gap-2 ${colors.bg} ${colors.hover} ${colors.active} text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${colors.ring} dark:focus:ring-offset-gray-900`}
       >
-        <option value="" disabled>Select model</option>
-        {models.map((model) => (
-          <option key={model.id} value={model.id}>
-            {model.name}
-          </option>
-        ))}
-      </select>
-      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-        <ChevronDownIcon className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-      </div>
-    </div>
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+        </svg>
+        <span className="truncate max-w-[150px] sm:max-w-[200px]">
+          {getModelDisplayName()}
+        </span>
+        <ChevronDownIcon className="w-4 h-4 flex-shrink-0" />
+      </button>
+
+      <ModelSelectorModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        provider={provider}
+        selectedModel={selectedModel}
+        onModelSelect={onModelChange}
+      />
+    </>
   );
 }

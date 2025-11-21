@@ -1,5 +1,22 @@
 # RunBack AI - Implementation Summary
 
+## Recent Updates
+
+### 🎉 Enhanced Model Selector (November 2024)
+The model selector has been upgraded from a simple dropdown to a **full-screen modal with dynamic model fetching and fuzzy search**:
+
+**Key Features:**
+- 📱 **Full-screen modal** on mobile (slide-up animation)
+- 🔍 **Fuzzy search** for quick filtering
+- 🌐 **Dynamic model fetching** from provider APIs (OpenRouter, Replicate, Fal.ai)
+- 👆 **Touch-friendly** with 44px min row height
+- 🎨 **Dark mode support**
+- ⚡ **Graceful fallbacks** when API fetch fails
+
+See [MODEL_SELECTOR.md](./MODEL_SELECTOR.md) for detailed documentation.
+
+---
+
 ## Quick Reference Guide
 
 This document provides a quick overview of the key features and requirements for implementing the RunBack AI application.

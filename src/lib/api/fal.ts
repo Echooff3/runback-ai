@@ -4,10 +4,34 @@ import * as fal from '@fal-ai/serverless-client';
 const TEST_MODEL = 'fal-ai/fast-llm';
 
 export class FalClient {
+  private apiKey: string;
+
   constructor(apiKey: string) {
+    this.apiKey = apiKey;
     fal.config({
       credentials: apiKey,
     });
+  }
+
+  async fetchAvailableModels(): Promise<any[]> {
+    try {
+      const response = await fetch('https://api.fal.ai/v1/models', {
+        method: 'GET',
+        headers: {
+          Authorization: `Key ${this.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch models: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.models || data || [];
+    } catch (error) {
+      console.error('Failed to fetch FAL models:', error);
+      throw error;
+    }
   }
 
   async sendMessage(

@@ -1,5 +1,6 @@
 import { PlusIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
+import { saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import SessionTab from './SessionTab';
 import type { Provider } from '../../types';
 
@@ -20,6 +21,11 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
 
   const handleNewSession = async () => {
     await createNewSession(defaultProvider, defaultModel);
+    // Save the current provider/model as the last used
+    saveLastProvider(defaultProvider);
+    if (defaultModel) {
+      saveLastModel(defaultModel);
+    }
   };
 
   const handleCloseSession = async (sessionId: string) => {

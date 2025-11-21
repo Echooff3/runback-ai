@@ -64,10 +64,16 @@ export class ReplicateClient {
   }
 }
 
-// Available models for Replicate
+// Popular Replicate models (static list due to CORS restrictions on browser-side API calls)
 export const REPLICATE_MODELS = [
-  { id: 'meta/meta-llama-3-70b-instruct', name: 'Llama 3 70B Instruct' },
-  { id: 'meta/meta-llama-3-8b-instruct', name: 'Llama 3 8B Instruct' },
-  { id: 'mistralai/mixtral-8x7b-instruct-v0.1', name: 'Mixtral 8x7B Instruct' },
-  { id: 'mistralai/mistral-7b-instruct-v0.2', name: 'Mistral 7B Instruct' },
+  { id: 'meta/meta-llama-3-70b-instruct', name: 'Llama 3 70B Instruct', description: 'Meta\'s large instruction-tuned model' },
+  { id: 'meta/meta-llama-3-8b-instruct', name: 'Llama 3 8B Instruct', description: 'Efficient instruction-tuned model' },
+  { id: 'meta/llama-2-70b-chat', name: 'Llama 2 70B Chat', description: 'Large chat model' },
+  { id: 'meta/llama-2-13b-chat', name: 'Llama 2 13B Chat', description: 'Medium chat model' },
+  { id: 'meta/llama-2-7b-chat', name: 'Llama 2 7B Chat', description: 'Small efficient chat model' },
+  { id: 'mistralai/mixtral-8x7b-instruct-v0.1', name: 'Mixtral 8x7B Instruct', description: 'Mixture of experts model' },
+  { id: 'mistralai/mistral-7b-instruct-v0.2', name: 'Mistral 7B Instruct v0.2', description: 'Efficient 7B instruction model' },
+  { id: 'mistralai/mistral-7b-v0.1', name: 'Mistral 7B v0.1', description: 'Base 7B model' },
+  { id: 'stability-ai/sdxl', name: 'Stable Diffusion XL', description: 'Text-to-image generation' },
+  { id: 'stability-ai/stable-diffusion', name: 'Stable Diffusion', description: 'Image generation model' },
 ];

@@ -76,15 +76,6 @@ export default function ChatScreen() {
     }
   }, [currentSession?.id]); // Only trigger when session ID changes (tab switch)
 
-  // Create initial session if none exist and we have a provider/model
-  useEffect(() => {
-    if (selectedProvider && selectedModel && sessions.length === 0) {
-      createNewSession(selectedProvider, selectedModel);
-      saveLastProvider(selectedProvider);
-      saveLastModel(selectedModel);
-    }
-  }, [selectedProvider, selectedModel, sessions.length]);
-
   // Set default model when provider changes
   useEffect(() => {
     if (selectedProvider) {
@@ -184,14 +175,6 @@ export default function ChatScreen() {
     setCurrentResponseIndex(messageId, newIndex);
   };
 
-  // Helper to find user message for regeneration
-  const findUserMessageForResponse = (messageId: string): ChatMessage | undefined => {
-    return currentSession?.messages
-      .slice()
-      .reverse()
-      .find(m => m.role === 'user' && m.responses?.some(r => r.id === messageId));
-  };
-
   // Helper to get current AI response content
   const getCurrentResponseContent = (message: ChatMessage): string => {
     const response = message.responses?.[message.currentResponseIndex ?? 0];
@@ -267,22 +250,41 @@ export default function ChatScreen() {
             <Cog6ToothIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <ProviderSelector
-            selectedProvider={selectedProvider}
-            onProviderChange={setSelectedProvider}
-            providerStatus={providerStatus}
-          />
-          <ModelSelector
-            provider={selectedProvider}
-            selectedModel={selectedModel}
-            onModelChange={setSelectedModel}
-          />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Provider:</span>
+            <ProviderSelector
+              selectedProvider={selectedProvider}
+              onProviderChange={setSelectedProvider}
+              providerStatus={providerStatus}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Model:</span>
+            <ModelSelector
+              provider={selectedProvider}
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+            />
+          </div>
         </div>
       </div>
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+        {/* Empty state when no session exists */}
+        {!currentSession && (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center space-y-4 max-w-md">
+              <div className="text-6xl mb-4">💬</div>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Start a New Chat</h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Click the <span className="text-indigo-600 dark:text-indigo-400 font-medium">+ button</span> above to create a new chat session.
+              </p>
+            </div>
+          </div>
+        )}
+
         {currentSession?.messages.map((message) => {
           if (message.role === 'user') {
             const hasResponses = message.responses && message.responses.length > 0;

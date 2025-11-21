@@ -8,6 +8,7 @@ interface SettingsState {
   updateAPIConfig: (config: APIConfig) => void;
   getProviderConfig: (provider: Provider) => APIConfig | undefined;
   isProviderConfigured: (provider: Provider) => boolean;
+  getAPIKey: (provider: Provider) => string | undefined;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -31,5 +32,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   isProviderConfigured: (provider: Provider) => {
     const config = get().getProviderConfig(provider);
     return config?.isConfigured || false;
+  },
+  
+  getAPIKey: (provider: Provider) => {
+    const config = get().getProviderConfig(provider);
+    return config?.apiKey;
   },
 }));
