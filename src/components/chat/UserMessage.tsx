@@ -29,14 +29,14 @@ export default function UserMessage({ message, onRerun, onCopy }: UserMessagePro
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
             title="Re-run prompt"
           >
-            <ArrowPathIcon className="w-4 h-4" />
+            <ArrowPathIcon className="w-5 h-5" />
           </button>
           <button
             onClick={onCopy}
             className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
             title="Copy message"
           >
-            <ClipboardIcon className="w-4 h-4" />
+            <ClipboardIcon className="w-5 h-5" />
           </button>
         </div>
       </div>

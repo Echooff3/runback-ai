@@ -105,10 +105,12 @@ Local Storage (No Database Needed!)
 - App settings
 - Last used provider/model
 
-### IndexedDB (Large Data)
-- Chat sessions (optional persistence)
-- Chat history archives
-- Response history (multiple responses per prompt)
+### IndexedDB (Large Data) ✅ IMPLEMENTED
+- ✅ Chat sessions with full persistence
+- ✅ Chat history with metadata (timestamps, provider, model)
+- ✅ Response history (multiple responses per prompt)
+- ✅ Session management (starred, closed, deleted states)
+- ✅ Indexes for efficient queries (createdAt, updatedAt, isStarred, isClosed)
 
 ### Storage Keys
 ```typescript
@@ -237,13 +239,17 @@ App
 - [ ] GitHub Actions CI/CD
 
 ### Phase 2: Chat Core (2-3 weeks)
-- [ ] Chat interface UI
-- [ ] Provider/model selection
-- [ ] API integration (all 3 providers)
-- [ ] Message display (user/AI)
-- [ ] Re-run prompt functionality ⭐
-- [ ] Response history navigation ⭐
-- [ ] Loading states and error handling
+- [x] Chat interface UI
+- [x] Provider/model selection
+- [x] API integration (all 3 providers)
+- [x] Message display (user/AI)
+- [x] Re-run prompt functionality ⭐
+- [x] Response history navigation ⭐
+- [x] Loading states and error handling
+- [x] **Multi-tab chat sessions** ⭐ NEW
+- [x] **Persistent session storage (IndexedDB)** ⭐ NEW
+- [x] **Starred sessions with delete protection** ⭐ NEW
+- [x] **Session history management** ⭐ NEW
 
 ### Phase 3: Prompt Management (2-3 weeks)
 - [ ] System prompts CRUD
@@ -441,21 +447,27 @@ docker run -p 8080:80 runback-ai
 
 ## Acceptance Criteria Checklist
 
-- [ ] Users can configure API keys for all 3 providers
-- [ ] Users can test API connections
-- [ ] Users can send messages and receive responses
-- [ ] Users can switch providers/models seamlessly
-- [ ] Users can re-run prompts and view response history ⭐
+- [x] Users can configure API keys for all 3 providers
+- [x] Users can test API connections
+- [x] Users can send messages and receive responses
+- [x] Users can switch providers/models seamlessly
+- [x] Users can re-run prompts and view response history ⭐
+- [x] **Users can create multiple chat tabs/sessions** ⭐ NEW
+- [x] **Users can switch between chat sessions** ⭐ NEW
+- [x] **Users can star sessions to prevent deletion** ⭐ NEW
+- [x] **Users can close tabs (keeps in history)** ⭐ NEW
+- [x] **Users can view/manage all sessions in history** ⭐ NEW
+- [x] **Sessions persist across browser sessions** ⭐ NEW
 - [ ] Users can create/edit/delete system prompts
 - [ ] Users can create/edit/delete slash prompts
 - [ ] Users can apply system prompts to chat
 - [ ] Users can use slash prompts with autocomplete
-- [ ] Users can toggle dark/light mode ⭐
-- [ ] Theme preference persists
-- [ ] App is responsive (320-428px)
-- [ ] All data persists in browser ⭐
+- [x] Users can toggle dark/light mode ⭐
+- [x] Theme preference persists
+- [x] App is responsive (320-428px)
+- [x] All data persists in browser (LocalStorage + IndexedDB) ⭐
 - [ ] App loads in < 3s
-- [ ] Errors handled gracefully
+- [x] Errors handled gracefully
 - [ ] Accessible (keyboard nav, screen readers)
 - [ ] Tests cover critical paths
 - [ ] Documentation complete
@@ -492,6 +504,257 @@ npm run build
 # 8. Test the build
 cd dist && python3 -m http.server 8080
 ```
+
+---
+
+## Recent Implementation: Multi-Tab Chat System (Phase 2 Enhancement)
+
+### Overview
+Implemented a comprehensive multi-tab chat system with persistent storage, allowing users to maintain multiple concurrent conversations with different models and providers.
+
+### Features Implemented
+
+#### 1. **IndexedDB Storage Layer**
+- **File**: `src/lib/storage/indexedDB.ts`
+- Database: `runback_db` (version 1)
+- Object Store: `chat_sessions` with indexes on `createdAt`, `updatedAt`, `isStarred`, `isClosed`, `provider`
+- Full CRUD operations: save, load, loadAll, delete, update, clear
+- Singleton pattern for connection management
+- Automatic database initialization and upgrades
+
+#### 2. **Session Storage Abstraction**
+- **File**: `src/lib/storage/sessionStorage.ts`
+- High-level functions wrapping IndexedDB operations
+- Functions: `saveSession`, `loadSession`, `loadAllSessions`, `loadOpenSessions`, `deleteSession`, `toggleStarSession`, `updateSessionTitle`, `closeSession`, `reopenSession`
+- Auto-title generation from first message
+- Delete protection for starred sessions
+
+#### 3. **Enhanced ChatSession Type**
+- **File**: `src/types/index.ts`
+- Added fields:
+  - `title?: string` - Session display name (auto-generated or custom)
+  - `isStarred: boolean` - Protection flag preventing deletion/closure
+  - `isClosed: boolean` - Distinguishes active tabs from history
+
+#### 4. **Refactored Chat Store**
+- **File**: `src/stores/chatStore.ts`
+- State changes:
+  - `sessions: ChatSession[]` - Array of all open sessions
+  - `activeSessionId: string | null` - Currently displayed session
+  - Removed single `initSession` in favor of `createNewSession`
+- New actions:
+  - `loadSessions()` - Load open sessions from IndexedDB
+  - `loadAllSessions()` - Load all sessions (including closed)
+  - `createNewSession()` - Create and persist new session
+  - `switchSession()` - Change active session
+  - `closeSessionTab()` - Mark session as closed, remove from tabs
+  - `reopenSession()` - Reopen closed session
+  - `deleteSession()` - Permanently delete (if not starred)
+  - `toggleStarSession()` - Toggle starred status
+  - `updateSessionTitle()` - Update session display name
+  - `saveCurrentSession()` - Manual save trigger
+- Auto-save on every message change (non-blocking)
+- Auto-generates title from first user message
+
+#### 5. **Session Tab Components**
+
+**SessionTab** (`src/components/chat/SessionTab.tsx`):
+- Displays individual tab with title, star icon, close button
+- Star button: filled ★ when starred, outline ☆ when not
+- Close button disabled for starred sessions (with tooltip)
+- Truncates long titles with ellipsis
+- Active state styling (indigo background)
+- Hover states and transitions
+
+**SessionTabs** (`src/components/chat/SessionTabs.tsx`):
+- Horizontal scrollable tab bar
+- "+" button to create new sessions
+- Maps through all open sessions
+- Handles tab clicks, close, and star actions
+- Mobile-responsive with scroll support
+
+#### 6. **Updated ChatScreen**
+- **File**: `src/components/chat/ChatScreen.tsx`
+- Renders `SessionTabs` component above chat interface
+- Loads sessions from IndexedDB on mount
+- Creates initial session if none exist
+- Maintains provider/model selection per session
+- Messages tied to active session only
+
+#### 7. **Session History Component**
+- **File**: `src/components/settings/SessionHistory.tsx`
+- Complete session management interface in Settings
+- Features:
+  - Search by title, provider, or model
+  - Filter by starred status (button toggle)
+  - Filter by open/closed/all sessions (dropdown)
+  - Star/unstar sessions (toggles protection)
+  - Delete sessions (disabled if starred, with tooltip)
+  - Reopen closed sessions
+  - Display metadata: provider, model, message count, last updated
+  - Visual indicators for starred (★) and closed sessions
+  - Refresh button to reload from IndexedDB
+- Mobile-responsive layout with flexbox
+- Color-coded providers (blue=OpenRouter, purple=Replicate, green=Fal)
+
+#### 8. **Updated Settings Screen**
+- **File**: `src/components/settings/SettingsScreen.tsx`
+- Added Session History section after API Keys
+- New section with divider for visual separation
+- Integrated `SessionHistory` component
+
+### Data Flow
+
+1. **Session Creation**:
+   - User clicks "+" → `createNewSession()` → Save to IndexedDB → Add to store → Switch to new session
+
+2. **Message Sending**:
+   - User sends message → `addUserMessage()` → Auto-generate title if first message → Update session → Auto-save to IndexedDB (async)
+
+3. **AI Response**:
+   - Response received → `addAIResponse()` → Append to message responses → Update session → Auto-save to IndexedDB (async)
+
+4. **Tab Closing**:
+   - User clicks X on tab → Check if starred → If not starred: `closeSessionTab()` → Mark `isClosed: true` → Save → Remove from active tabs
+   - If starred: Button disabled, tooltip shows "Unstar to close"
+
+5. **Session Deletion** (from History):
+   - User clicks delete → Check if starred → If not starred: Confirm dialog → `deleteSession()` → Remove from IndexedDB
+   - If starred: Button disabled, tooltip shows "Unstar to delete"
+
+6. **Session Starring**:
+   - User clicks star icon → `toggleStarSession()` → Update `isStarred` → Save to IndexedDB → Update UI
+
+### Storage Structure
+
+**IndexedDB Schema**:
+```typescript
+Database: runback_db (v1)
+  ObjectStore: chat_sessions
+    - keyPath: 'id'
+    - indexes:
+      - 'createdAt' (non-unique)
+      - 'updatedAt' (non-unique)
+      - 'isStarred' (non-unique)
+      - 'isClosed' (non-unique)
+      - 'provider' (non-unique)
+```
+
+**ChatSession Object**:
+```typescript
+{
+  id: string;                    // UUID
+  title?: string;                // Auto-generated or custom
+  messages: ChatMessage[];       // Full conversation
+  systemPromptId?: string;       // Linked system prompt
+  provider: Provider;            // 'openrouter' | 'replicate' | 'fal'
+  model?: string;                // Model ID
+  createdAt: string;             // ISO timestamp
+  updatedAt: string;             // ISO timestamp
+  isStarred: boolean;            // Protection flag
+  isClosed: boolean;             // Active vs history
+}
+```
+
+### User Workflows
+
+**Creating Multiple Chats**:
+1. User opens app → First session auto-created
+2. User clicks "+" → New session created with same provider/model
+3. User can switch models per tab independently
+4. Each tab maintains its own conversation
+
+**Protecting Important Conversations**:
+1. User stars a session (click ★ icon)
+2. Close button becomes disabled with tooltip
+3. Session appears in history with filled star
+4. Delete button in history becomes disabled
+5. Must unstar before closing or deleting
+
+**Managing History**:
+1. User goes to Settings → Chat History
+2. Can search for sessions by keyword
+3. Can filter by starred, open, or closed
+4. Can star/unstar any session
+5. Can delete unstarred sessions (with confirmation)
+6. Can reopen closed sessions (adds back to tabs)
+
+### Technical Decisions
+
+**Why IndexedDB over LocalStorage?**
+- LocalStorage limited to ~5-10MB
+- Chat sessions with multiple messages exceed this quickly
+- IndexedDB provides ~50MB+ storage per domain
+- Better performance for large datasets
+- Structured querying with indexes
+
+**Why Starred Protection?**
+- Prevents accidental deletion of important conversations
+- Two-step process (unstar → delete) for safety
+- Visual indicators (filled star, disabled buttons)
+- Tooltips explain why actions are disabled
+
+**Why Auto-Save?**
+- No "save" button needed
+- Async saves don't block UI
+- Users never lose work
+- Fires on every message change
+- Error handling with console logging
+
+**Why Separate Open/Closed States?**
+- Closed sessions stay in history for reference
+- Users can close tabs without losing data
+- Can reopen sessions later
+- Keeps tab bar uncluttered
+
+### Files Modified/Created
+
+**Created**:
+- `src/lib/storage/indexedDB.ts` (206 lines)
+- `src/lib/storage/sessionStorage.ts` (159 lines)
+- `src/components/chat/SessionTab.tsx` (75 lines)
+- `src/components/chat/SessionTabs.tsx` (56 lines)
+- `src/components/settings/SessionHistory.tsx` (265 lines)
+
+**Modified**:
+- `src/types/index.ts` - Added `title`, `isStarred`, `isClosed` to ChatSession
+- `src/lib/storage/constants.ts` - Added IndexedDB config constants
+- `src/stores/chatStore.ts` - Complete refactor for multi-session
+- `src/components/chat/ChatScreen.tsx` - Added SessionTabs, load/create logic
+- `src/components/settings/SettingsScreen.tsx` - Added SessionHistory section
+
+### Testing Recommendations
+
+1. **Session Creation**: Create multiple sessions, verify persistence after refresh
+2. **Session Switching**: Switch between tabs, verify messages stay separate
+3. **Star Protection**: Star session, verify close/delete disabled
+4. **Search/Filter**: Test search and filter combinations in history
+5. **Delete**: Delete unstarred session, verify removed from DB
+6. **Reopen**: Close tab, verify appears in history, reopen successfully
+7. **Auto-Title**: Send message, verify title auto-generated from first message
+8. **Provider/Model**: Change per-session, verify independent configs
+9. **Large Data**: Create 20+ sessions with many messages, verify performance
+10. **Browser Refresh**: Verify all sessions persist and restore correctly
+
+### Known Limitations
+
+- No session export/import yet (future enhancement)
+- No session search by message content (only title/provider/model)
+- No session renaming UI (title is auto-generated)
+- No session archiving (separate from closed state)
+- No storage quota monitoring/cleanup
+- No offline sync between devices
+
+### Future Enhancements
+
+- Manual session title editing (inline edit)
+- Session folders/tags for organization
+- Export/import sessions as JSON
+- Search within message content
+- Session archiving (separate from closed)
+- Storage quota warnings and cleanup UI
+- LRU cleanup for old sessions (keep starred)
+- Session statistics (token usage, cost estimates)
 
 ---
 

@@ -79,10 +79,13 @@ export interface ChatMessage {
 
 export interface ChatSession {
   id: string;
+  title?: string;
   messages: ChatMessage[];
   systemPromptId?: string;
   provider: Provider;
   model?: string;
   createdAt: string;
   updatedAt: string;
+  isStarred: boolean;
+  isClosed: boolean;
 }

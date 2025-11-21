@@ -58,7 +58,7 @@ export default function AIMessage({
                 className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Previous response"
               >
-                <ChevronLeftIcon className="w-4 h-4" />
+                <ChevronLeftIcon className="w-5 h-5" />
               </button>
               <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
                 Response {currentIndex + 1} of {responses.length}
@@ -69,7 +69,7 @@ export default function AIMessage({
                 className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Next response"
               >
-                <ChevronRightIcon className="w-4 h-4" />
+                <ChevronRightIcon className="w-5 h-5" />
               </button>
             </div>
           )}
@@ -106,14 +106,14 @@ export default function AIMessage({
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
               title="Regenerate response"
             >
-              <ArrowPathIcon className="w-4 h-4" />
+              <ArrowPathIcon className="w-5 h-5" />
             </button>
             <button
               onClick={onCopy}
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
               title="Copy response"
             >
-              <ClipboardIcon className="w-4 h-4" />
+              <ClipboardIcon className="w-5 h-5" />
             </button>
           </div>
         </div>

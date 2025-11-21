@@ -6,6 +6,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient } from '../../lib/api';
 import { getLastProvider, getLastModel, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import type { Provider, ChatMessage } from '../../types';
+import SessionTabs from './SessionTabs';
 import ProviderSelector from './ProviderSelector';
 import ModelSelector from './ModelSelector';
 import UserMessage from './UserMessage';
@@ -15,10 +16,13 @@ import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
 
 export default function ChatScreen() {
   const { 
+    sessions,
     currentSession, 
     isLoading, 
     error,
-    initSession,
+    loadSessions,
+    createNewSession,
+    updateSessionSettings,
     addUserMessage,
     addAIResponse,
     setCurrentResponseIndex,
@@ -33,7 +37,7 @@ export default function ChatScreen() {
   const [selectedModel, setSelectedModel] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load API configs and initialize session on mount
+  // Load API configs and sessions on mount
   useEffect(() => {
     loadAPIConfigs();
     
@@ -54,16 +58,32 @@ export default function ChatScreen() {
     if (lastModel) {
       setSelectedModel(lastModel);
     }
+
+    // Load existing sessions
+    loadSessions();
   }, []);
 
-  // Initialize session when provider or model changes
+  // Restore session's provider and model when currentSession changes (tab switch)
   useEffect(() => {
-    if (selectedProvider && selectedModel) {
-      initSession(selectedProvider, selectedModel);
+    if (currentSession) {
+      // Update UI to match the session's settings
+      if (currentSession.provider) {
+        setSelectedProvider(currentSession.provider);
+      }
+      if (currentSession.model) {
+        setSelectedModel(currentSession.model);
+      }
+    }
+  }, [currentSession?.id]); // Only trigger when session ID changes (tab switch)
+
+  // Create initial session if none exist and we have a provider/model
+  useEffect(() => {
+    if (selectedProvider && selectedModel && sessions.length === 0) {
+      createNewSession(selectedProvider, selectedModel);
       saveLastProvider(selectedProvider);
       saveLastModel(selectedModel);
     }
-  }, [selectedProvider, selectedModel]);
+  }, [selectedProvider, selectedModel, sessions.length]);
 
   // Set default model when provider changes
   useEffect(() => {
@@ -79,6 +99,16 @@ export default function ChatScreen() {
       }
     }
   }, [selectedProvider]);
+
+  // Save provider/model changes to the current session
+  useEffect(() => {
+    if (currentSession && selectedProvider && selectedModel) {
+      // Only update if they're different from the session's current settings
+      if (currentSession.provider !== selectedProvider || currentSession.model !== selectedModel) {
+        updateSessionSettings(currentSession.id, selectedProvider, selectedModel);
+      }
+    }
+  }, [selectedProvider, selectedModel, currentSession?.id]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -219,6 +249,12 @@ export default function ChatScreen() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+      {/* Session tabs */}
+      <SessionTabs 
+        defaultProvider={selectedProvider}
+        defaultModel={selectedModel}
+      />
+
       {/* Header with provider and model selection */}
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
         <div className="flex items-center justify-between mb-3">
@@ -249,30 +285,26 @@ export default function ChatScreen() {
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
         {currentSession?.messages.map((message) => {
           if (message.role === 'user') {
+            const hasResponses = message.responses && message.responses.length > 0;
             return (
-              <UserMessage
-                key={message.id}
-                message={message}
-                onRerun={() => handleRerunMessage(message)}
-                onCopy={() => handleCopyMessage(message.content)}
-              />
-            );
-          } else {
-            return (
-              <AIMessage
-                key={message.id}
-                message={message}
-                onRegenerate={() => {
-                  const userMessage = findUserMessageForResponse(message.id);
-                  if (userMessage) {
-                    handleRerunMessage(userMessage);
-                  }
-                }}
-                onCopy={() => handleCopyMessage(getCurrentResponseContent(message))}
-                onNavigateResponse={(direction) => handleNavigateResponse(message.id, direction)}
-              />
+              <div key={message.id}>
+                <UserMessage
+                  message={message}
+                  onRerun={() => handleRerunMessage(message)}
+                  onCopy={() => handleCopyMessage(message.content)}
+                />
+                {hasResponses && (
+                  <AIMessage
+                    message={message}
+                    onRegenerate={() => handleRerunMessage(message)}
+                    onCopy={() => handleCopyMessage(getCurrentResponseContent(message))}
+                    onNavigateResponse={(direction) => handleNavigateResponse(message.id, direction)}
+                  />
+                )}
+              </div>
             );
           }
+          return null;
         })}
 
         {/* Loading indicator */}
