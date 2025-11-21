@@ -13,7 +13,7 @@ export default function ProviderSelector({
 }: ProviderSelectorProps) {
   const providers: { id: Provider; name: string; color: 'blue' | 'purple' | 'green' }[] = [
     { id: 'openrouter', name: 'OpenRouter', color: 'blue' },
-    { id: 'replicate', name: 'Replicate', color: 'purple' },
+    // { id: 'replicate', name: 'Replicate', color: 'purple' },
     { id: 'fal', name: 'Fal.ai', color: 'green' },
   ];
 

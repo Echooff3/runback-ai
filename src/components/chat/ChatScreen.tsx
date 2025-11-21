@@ -4,8 +4,8 @@ import { Cog6ToothIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient } from '../../lib/api';
-import { getLastProvider, getLastModel, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
-import type { Provider, ChatMessage } from '../../types';
+import { getLastProvider, getLastModel } from '../../lib/storage/localStorage';
+import type { Provider, ChatMessage, ModelParameters } from '../../types';
 import SessionTabs from './SessionTabs';
 import ProviderSelector from './ProviderSelector';
 import ModelSelector from './ModelSelector';
@@ -16,12 +16,10 @@ import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
 
 export default function ChatScreen() {
   const { 
-    sessions,
     currentSession, 
     isLoading, 
     error,
     loadSessions,
-    createNewSession,
     updateSessionSettings,
     addUserMessage,
     addAIResponse,
@@ -35,6 +33,7 @@ export default function ChatScreen() {
 
   const [selectedProvider, setSelectedProvider] = useState<Provider>('openrouter');
   const [selectedModel, setSelectedModel] = useState<string>('');
+  const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load API configs and sessions on mount
@@ -119,6 +118,7 @@ export default function ChatScreen() {
         provider: selectedProvider,
         model: selectedModel,
         userMessage: content,
+        additionalParameters: selectedProvider === 'fal' ? modelParameters : undefined,
       });
 
       // Update generation number based on existing responses
@@ -146,6 +146,7 @@ export default function ChatScreen() {
         provider: selectedProvider,
         model: selectedModel,
         userMessage: message.content,
+        additionalParameters: selectedProvider === 'fal' ? modelParameters : undefined,
       });
 
       // Update generation number
@@ -189,6 +190,13 @@ export default function ChatScreen() {
   };
 
   const hasAnyProvider = Object.values(providerStatus).some(status => status);
+  
+  // Show parameters button only if both FAL and OpenRouter are configured
+  const showParametersButton = selectedProvider === 'fal' && providerStatus.fal && providerStatus.openrouter;
+  
+  // Get API keys for parameters feature
+  const falApiKey = apiConfigs.find(c => c.provider === 'fal')?.apiKey || '';
+  const openrouterApiKey = apiConfigs.find(c => c.provider === 'openrouter')?.apiKey || '';
 
   // Show welcome screen if no providers configured
   if (!hasAnyProvider) {
@@ -265,6 +273,11 @@ export default function ChatScreen() {
               provider={selectedProvider}
               selectedModel={selectedModel}
               onModelChange={setSelectedModel}
+              onParametersChange={setModelParameters}
+              showParametersButton={showParametersButton}
+              falApiKey={falApiKey}
+              openrouterApiKey={openrouterApiKey}
+              currentParameters={modelParameters}
             />
           </div>
         </div>

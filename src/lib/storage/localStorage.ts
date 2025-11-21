@@ -107,6 +107,61 @@ export function getLastModel(): string | null {
   return localStorage.getItem(STORAGE_KEYS.LAST_MODEL);
 }
 
+// HTML Generation Model
+export function saveHtmlGenerationModel(model: string): void {
+  localStorage.setItem(STORAGE_KEYS.HTML_GENERATION_MODEL, model);
+}
+
+export function getHtmlGenerationModel(): string {
+  return localStorage.getItem(STORAGE_KEYS.HTML_GENERATION_MODEL) || 'x-ai/grok-3';
+}
+
+// Model Parameters operations
+const MODEL_PARAMS_KEY_PREFIX = 'model_params_';
+
+export function saveModelParameters(modelId: string, parameters: Record<string, any>): void {
+  try {
+    const key = MODEL_PARAMS_KEY_PREFIX + modelId;
+    localStorage.setItem(key, JSON.stringify({
+      parameters,
+      timestamp: Date.now(),
+    }));
+  } catch (error) {
+    console.error('Failed to save model parameters:', error);
+  }
+}
+
+export function getModelParameters(modelId: string): Record<string, any> | null {
+  try {
+    const key = MODEL_PARAMS_KEY_PREFIX + modelId;
+    const data = localStorage.getItem(key);
+    
+    if (!data) return null;
+    
+    const parsed = JSON.parse(data);
+    return parsed.parameters || null;
+  } catch (error) {
+    console.error('Failed to load model parameters:', error);
+    return null;
+  }
+}
+
+export function clearModelParameters(modelId?: string): void {
+  try {
+    if (modelId) {
+      const key = MODEL_PARAMS_KEY_PREFIX + modelId;
+      localStorage.removeItem(key);
+    } else {
+      // Clear all model parameters
+      Object.keys(localStorage)
+        .filter(key => key.startsWith(MODEL_PARAMS_KEY_PREFIX))
+        .forEach(key => localStorage.removeItem(key));
+    }
+  } catch (error) {
+    console.error('Failed to clear model parameters:', error);
+  }
+}
+
 // Storage migration
 export function migrateStorage(): void {
   const storedVersion = parseInt(

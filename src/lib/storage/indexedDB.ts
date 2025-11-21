@@ -2,8 +2,9 @@ import type { ChatSession } from '../../types';
 
 // IndexedDB Configuration
 const DB_NAME = 'runback_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const SESSIONS_STORE = 'chat_sessions';
+const FORM_CACHE_STORE = 'form_cache';
 
 export class IndexedDBManager {
   private db: IDBDatabase | null = null;
@@ -41,6 +42,14 @@ export class IndexedDBManager {
           sessionStore.createIndex('isStarred', 'isStarred', { unique: false });
           sessionStore.createIndex('isClosed', 'isClosed', { unique: false });
           sessionStore.createIndex('provider', 'provider', { unique: false });
+        }
+
+        // Create form_cache store
+        if (!db.objectStoreNames.contains(FORM_CACHE_STORE)) {
+          const formStore = db.createObjectStore(FORM_CACHE_STORE, { keyPath: 'cacheKey' });
+          formStore.createIndex('modelId', 'modelId', { unique: false });
+          formStore.createIndex('provider', 'provider', { unique: false });
+          formStore.createIndex('timestamp', 'timestamp', { unique: false });
         }
       };
     });
@@ -184,6 +193,88 @@ export class IndexedDBManager {
 
       request.onsuccess = () => resolve();
       request.onerror = () => reject(new Error('Failed to clear sessions'));
+    });
+  }
+
+  /**
+   * Save form cache to IndexedDB
+   */
+  async saveFormCache(
+    modelId: string,
+    provider: string,
+    html: string,
+    javascript: string,
+    schema: any
+  ): Promise<void> {
+    await this.init();
+    if (!this.db) throw new Error('Database not initialized');
+
+    const cacheKey = `${provider}_${modelId}`;
+    const cacheData = {
+      cacheKey,
+      modelId,
+      provider,
+      html,
+      javascript,
+      schema,
+      timestamp: Date.now(),
+    };
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([FORM_CACHE_STORE], 'readwrite');
+      const store = transaction.objectStore(FORM_CACHE_STORE);
+      const request = store.put(cacheData);
+
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(new Error('Failed to save form cache'));
+    });
+  }
+
+  /**
+   * Load form cache from IndexedDB
+   */
+  async loadFormCache(
+    modelId: string,
+    provider: string
+  ): Promise<{ html: string; javascript: string; timestamp: number; schema: any } | null> {
+    await this.init();
+    if (!this.db) throw new Error('Database not initialized');
+
+    const cacheKey = `${provider}_${modelId}`;
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([FORM_CACHE_STORE], 'readonly');
+      const store = transaction.objectStore(FORM_CACHE_STORE);
+      const request = store.get(cacheKey);
+
+      request.onsuccess = () => {
+        resolve(request.result || null);
+      };
+      request.onerror = () => reject(new Error('Failed to load form cache'));
+    });
+  }
+
+  /**
+   * Clear form cache for a specific model/provider or all
+   */
+  async clearFormCache(modelId?: string, provider?: string): Promise<void> {
+    await this.init();
+    if (!this.db) throw new Error('Database not initialized');
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db!.transaction([FORM_CACHE_STORE], 'readwrite');
+      const store = transaction.objectStore(FORM_CACHE_STORE);
+
+      if (modelId && provider) {
+        const cacheKey = `${provider}_${modelId}`;
+        const request = store.delete(cacheKey);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(new Error('Failed to clear form cache'));
+      } else {
+        const request = store.clear();
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(new Error('Failed to clear all form cache'));
+      }
     });
   }
 

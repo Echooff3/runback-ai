@@ -77,6 +77,10 @@ export interface ChatMessage {
   };
 }
 
+export interface ModelParameters {
+  [key: string]: any;
+}
+
 export interface ChatSession {
   id: string;
   title?: string;
@@ -84,6 +88,7 @@ export interface ChatSession {
   systemPromptId?: string;
   provider: Provider;
   model?: string;
+  modelParameters?: ModelParameters;
   createdAt: string;
   updatedAt: string;
   isStarred: boolean;

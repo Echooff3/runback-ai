@@ -1,4 +1,4 @@
-import * as fal from '@fal-ai/serverless-client';
+import { fal } from '@fal-ai/client';
 
 // Test model for connection validation
 const TEST_MODEL = 'fal-ai/fast-llm';
@@ -37,16 +37,57 @@ export class FalClient {
   async sendMessage(
     model: string,
     prompt: string,
-    systemPrompt?: string
+    systemPrompt?: string,
+    additionalParameters?: Record<string, any>
   ): Promise<{ content: string; responseTime: number }> {
     const startTime = Date.now();
 
     try {
+      // Build input object with base parameters
+      const input: Record<string, any> = {};
+
+      // Handle prompt combination intelligently
+      let finalPrompt = prompt;
+      
+      if (additionalParameters?.prompt) {
+        const paramPrompt = additionalParameters.prompt;
+        
+        // Check if parameter prompt looks like a template with placeholder
+        if (paramPrompt.includes('{input}') || paramPrompt.includes('{{input}}')) {
+          // Replace placeholder with actual user input
+          finalPrompt = paramPrompt
+            .replace(/\{input\}/g, prompt)
+            .replace(/\{\{input\}\}/g, prompt);
+        } else if (paramPrompt.includes('{user}') || paramPrompt.includes('{{user}}')) {
+          finalPrompt = paramPrompt
+            .replace(/\{user\}/g, prompt)
+            .replace(/\{\{user\}\}/g, prompt);
+        } else {
+          // No placeholder, append user input to parameter prompt
+          finalPrompt = `${paramPrompt}\n\n${prompt}`;
+        }
+        
+        // Remove prompt from additionalParameters to avoid duplication
+        const { prompt: _, ...restParams } = additionalParameters;
+        input.prompt = finalPrompt;
+        Object.assign(input, restParams);
+      } else {
+        // No parameter prompt, use chat input directly
+        input.prompt = prompt;
+        
+        // Merge other additional parameters
+        if (additionalParameters) {
+          Object.assign(input, additionalParameters);
+        }
+      }
+
+      // Add system prompt if provided
+      if (systemPrompt) {
+        input.system_prompt = systemPrompt;
+      }
+
       const result = await fal.subscribe(model, {
-        input: {
-          prompt,
-          system_prompt: systemPrompt,
-        },
+        input,
         logs: false,
       });
 

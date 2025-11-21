@@ -69,6 +69,10 @@ export class OpenRouterClient {
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const message = error.response?.data?.error?.message || error.message;
+        // Add context about the model being used if it's a 404
+        if (error.response?.status === 404) {
+          throw new Error(`OpenRouter API error (404): Model '${model}' not found or endpoint invalid. ${message}`);
+        }
         throw new Error(`OpenRouter API error: ${message}`);
       }
       throw error;

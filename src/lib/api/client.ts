@@ -11,6 +11,7 @@ export interface SendMessageOptions {
   userMessage: string;
   systemPrompt?: string;
   conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
+  additionalParameters?: Record<string, any>;
 }
 
 export class AIClient {
@@ -43,7 +44,7 @@ export class AIClient {
   }
 
   async sendMessage(options: SendMessageOptions): Promise<AIResponse> {
-    const { provider, model, userMessage, systemPrompt, conversationHistory } = options;
+    const { provider, model, userMessage, systemPrompt, conversationHistory, additionalParameters } = options;
 
     let result: { content: string; tokenCount?: number; responseTime: number };
 
@@ -71,7 +72,7 @@ export class AIClient {
         if (!this.falClient) {
           throw new Error('Fal.ai is not configured');
         }
-        result = await this.sendFalMessage(model, userMessage, systemPrompt);
+        result = await this.sendFalMessage(model, userMessage, systemPrompt, additionalParameters);
         break;
 
       default:
@@ -137,13 +138,14 @@ export class AIClient {
   private async sendFalMessage(
     model: string,
     userMessage: string,
-    systemPrompt?: string
+    systemPrompt?: string,
+    additionalParameters?: Record<string, any>
   ): Promise<{ content: string; responseTime: number }> {
     if (!this.falClient) {
       throw new Error('Fal client not initialized');
     }
 
-    return await this.falClient.sendMessage(model, userMessage, systemPrompt);
+    return await this.falClient.sendMessage(model, userMessage, systemPrompt, additionalParameters);
   }
 
   // Reinitialize clients when API keys change
