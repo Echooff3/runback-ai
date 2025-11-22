@@ -107,6 +107,39 @@ export class FalClient {
 
       console.log('[FAL] Final input object being sent:', input);
 
+      // Special handling for Minimax Music models which sends JSON string as prompt
+      if (model === 'fal-ai/minimax-music/v1.5' || model === 'fal-ai/minimax-music/v2') {
+        try {
+          // Check if prompt is a JSON string containing our special structure
+          const parsed = JSON.parse(prompt);
+          if (parsed.prompt && parsed.lyrics_prompt) {
+            input.prompt = parsed.prompt;
+            input.lyrics_prompt = parsed.lyrics_prompt;
+          }
+        } catch (e) {
+          // Not JSON, treat as regular prompt (style) and empty lyrics or handle gracefully
+          // If the user didn't use the special input, we just use the prompt as is
+        }
+      }
+
+      // Special handling for Flux Dev model which sends JSON string as prompt
+      if (model === 'fal-ai/flux/dev') {
+        try {
+          // Check if prompt is a JSON string containing our special structure
+          const parsed = JSON.parse(prompt);
+          if (parsed.prompt) {
+            input.prompt = parsed.prompt;
+            if (parsed.image_size) input.image_size = parsed.image_size;
+            if (parsed.num_images) input.num_images = parsed.num_images;
+            if (parsed.enable_safety_checker !== undefined) input.enable_safety_checker = parsed.enable_safety_checker;
+            if (parsed.output_format) input.output_format = parsed.output_format;
+            if (parsed.acceleration) input.acceleration = parsed.acceleration;
+          }
+        } catch (e) {
+          // Not JSON, treat as regular prompt
+        }
+      }
+
       const { request_id } = await fal.queue.submit(model, {
         input,
       });
@@ -356,4 +389,7 @@ export const FAL_MODELS = [
   { id: 'fal-ai/fast-llm', name: 'Fast LLM' },
   { id: 'fal-ai/llama-3-70b', name: 'Llama 3 70B' },
   { id: 'fal-ai/llama-3-8b', name: 'Llama 3 8B' },
+  { id: 'fal-ai/minimax-music/v1.5', name: 'Minimax Music 1.5' },
+  { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0' },
+  { id: 'fal-ai/flux/dev', name: 'Flux Dev' },
 ];

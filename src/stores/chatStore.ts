@@ -38,6 +38,7 @@ interface ChatState {
   addUserMessage: (content: string) => ChatMessage;
   addAIResponse: (userMessageId: string, response: AIResponse) => void;
   updateAIResponseStatus: (userMessageId: string, responseId: string, updates: Partial<AIResponse>) => void;
+  updateAIResponseNote: (userMessageId: string, responseId: string, note: string) => void;
   setCurrentResponseIndex: (messageId: string, index: number) => void;
   
   // Polling management
@@ -337,6 +338,46 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const responses = (msg.responses || []).map(resp => {
           if (resp.id === responseId) {
             return { ...resp, ...updates };
+          }
+          return resp;
+        });
+        return { ...msg, responses };
+      }
+      return msg;
+    });
+    
+    const updatedSession = {
+      ...state.currentSession,
+      messages,
+      updatedAt: new Date().toISOString(),
+    };
+    
+    // Update in memory
+    set({ currentSession: updatedSession });
+    
+    // Update sessions array
+    const updatedSessions = state.sessions.map(s => 
+      s.id === updatedSession.id ? updatedSession : s
+    );
+    set({ sessions: updatedSessions });
+    
+    // Save to DB (async, don't wait)
+    saveSessionToDB(updatedSession).catch(err => 
+      console.error('Failed to save session:', err)
+    );
+  },
+
+  updateAIResponseNote: (userMessageId: string, responseId: string, note: string) => {
+    const state = get();
+    if (!state.currentSession) {
+      throw new Error('No active session');
+    }
+    
+    const messages = state.currentSession.messages.map(msg => {
+      if (msg.id === userMessageId && msg.role === 'user') {
+        const responses = (msg.responses || []).map(resp => {
+          if (resp.id === responseId) {
+            return { ...resp, notes: note };
           }
           return resp;
         });

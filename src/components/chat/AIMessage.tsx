@@ -1,11 +1,13 @@
 import { format } from 'date-fns';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { 
   ArrowPathIcon, 
   ClipboardIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  PencilSquareIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 import type { ChatMessage, MediaAsset } from '../../types';
 
@@ -15,6 +17,8 @@ interface AIMessageProps {
   onCopy: () => void;
   onNavigateResponse: (direction: 'prev' | 'next') => void;
   onVisibilityChange?: (isVisible: boolean) => void;
+  onEdit?: () => void;
+  onUpdateNote?: (note: string) => void;
 }
 
 export default function AIMessage({ 
@@ -22,14 +26,25 @@ export default function AIMessage({
   onRegenerate, 
   onCopy,
   onNavigateResponse,
-  onVisibilityChange
+  onVisibilityChange,
+  onEdit,
+  onUpdateNote
 }: AIMessageProps) {
   const messageRef = useRef<HTMLDivElement>(null);
+  const [isEditingNote, setIsEditingNote] = useState(false);
+  const [noteContent, setNoteContent] = useState('');
 
   const responses = message.responses || [];
   const currentIndex = message.currentResponseIndex ?? 0;
   const currentResponse = responses[currentIndex];
   
+  // Initialize note content from response
+  useEffect(() => {
+    if (currentResponse) {
+      setNoteContent(currentResponse.notes || '');
+    }
+  }, [currentResponse?.id, currentResponse?.notes]);
+
   // IntersectionObserver for viewport visibility
   useEffect(() => {
     if (!messageRef.current || !onVisibilityChange) return;
@@ -94,6 +109,13 @@ export default function AIMessage({
     } catch (error) {
       console.error('Failed to download asset:', error);
     }
+  };
+
+  const handleSaveNote = () => {
+    if (onUpdateNote) {
+      onUpdateNote(noteContent);
+    }
+    setIsEditingNote(false);
   };
   
   return (
@@ -193,6 +215,50 @@ export default function AIMessage({
           <p className="whitespace-pre-wrap break-words text-gray-900 dark:text-gray-100">
             {currentResponse.content}
           </p>
+
+          {/* Notes Section */}
+          {(isEditingNote || currentResponse.notes) && (
+            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-2 mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">
+                <DocumentTextIcon className="w-4 h-4" />
+                <span>Notes</span>
+              </div>
+              {isEditingNote ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={noteContent}
+                    onChange={(e) => setNoteContent(e.target.value)}
+                    className="w-full p-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    rows={3}
+                    placeholder="Add a note..."
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => setIsEditingNote(false)}
+                      className="px-2 py-1 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveNote}
+                      className="px-2 py-1 text-xs text-white bg-indigo-600 hover:bg-indigo-700 rounded"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  className="text-sm text-gray-700 dark:text-gray-300 bg-yellow-50 dark:bg-yellow-900/10 p-2 rounded border border-yellow-100 dark:border-yellow-900/30 cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/20 transition-colors"
+                  onClick={() => setIsEditingNote(true)}
+                  title="Click to edit note"
+                >
+                  {currentResponse.notes}
+                </div>
+              )}
+            </div>
+          )}
           
           {/* Response navigation */}
           {hasMultipleResponses && (
@@ -246,6 +312,24 @@ export default function AIMessage({
             )}
           </div>
           <div className="flex items-center gap-1">
+            {onUpdateNote && !isEditingNote && !currentResponse.notes && (
+              <button
+                onClick={() => setIsEditingNote(true)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                title="Add note"
+              >
+                <DocumentTextIcon className="w-5 h-5" />
+              </button>
+            )}
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                title="Edit prompt"
+              >
+                <PencilSquareIcon className="w-5 h-5" />
+              </button>
+            )}
             <button
               onClick={onRegenerate}
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"

@@ -147,6 +147,12 @@ export default function ModelSelectorModal({
   };
 
   const fetchFalModels = async (apiKey: string): Promise<Model[]> => {
+    const pinnedModels: Model[] = [
+      { id: 'fal-ai/minimax-music/v1.5', name: 'Minimax Music 1.5', description: 'Generate music with Minimax 1.5' },
+      { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0', description: 'Generate music with Minimax 2.0' },
+      { id: 'fal-ai/flux/dev', name: 'Flux Dev', description: 'Generate images with Flux Dev' },
+    ];
+
     try {
       const response = await fetch('https://api.fal.ai/v1/models', {
         method: 'GET',
@@ -163,12 +169,17 @@ export default function ModelSelectorModal({
       const modelsList = data.models || [];
       
       // Transform FAL API response to our Model interface
-      return modelsList.map((model: any) => ({
+      const fetchedModels = modelsList.map((model: any) => ({
         id: model.endpoint_id,
         name: model.metadata?.display_name || model.endpoint_id,
         description: model.metadata?.description,
         // FAL doesn't provide context_length in the API response
       }));
+
+      // Filter out pinned models from fetched models to avoid duplicates
+      const otherModels = fetchedModels.filter((m: Model) => !pinnedModels.some(pm => pm.id === m.id));
+
+      return [...pinnedModels, ...otherModels];
     } catch (err) {
       console.error('Failed to fetch FAL models, using defaults:', err);
       return getDefaultModels('fal');
@@ -196,6 +207,9 @@ export default function ModelSelectorModal({
         { id: 'mistralai/mistral-7b-instruct-v0.2', name: 'Mistral 7B Instruct', description: 'Efficient 7B model' },
       ],
       fal: [
+        { id: 'fal-ai/minimax-music/v1.5', name: 'Minimax Music 1.5', description: 'Generate music with Minimax 1.5' },
+        { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0', description: 'Generate music with Minimax 2.0' },
+        { id: 'fal-ai/flux/dev', name: 'Flux Dev', description: 'Generate images with Flux Dev' },
         { id: 'fal-ai/fast-llm', name: 'Fast LLM', description: 'Quick inference model' },
         { id: 'fal-ai/llama-3-70b', name: 'Llama 3 70B', description: 'Large language model' },
         { id: 'fal-ai/llama-3-8b', name: 'Llama 3 8B', description: 'Efficient language model' },

@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient } from '../../lib/api';
-import { getLastProvider, getLastModel, getModelParameters } from '../../lib/storage/localStorage';
+import { getLastProvider, getLastModel, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
 import type { Provider, ChatMessage, ModelParameters, AIResponse } from '../../types';
 import SessionTabs from './SessionTabs';
@@ -14,6 +14,8 @@ import ModelSelector from './ModelSelector';
 import UserMessage from './UserMessage';
 import AIMessage from './AIMessage';
 import ChatInput from './ChatInput';
+import MusicGenerationInput from './MusicGenerationInput';
+import FluxGenerationInput from './FluxGenerationInput';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
 
 export default function ChatScreen() {
@@ -26,6 +28,7 @@ export default function ChatScreen() {
     addUserMessage,
     addAIResponse,
     updateAIResponseStatus,
+    updateAIResponseNote,
     setCurrentResponseIndex,
     startPolling,
     stopPolling,
@@ -40,6 +43,8 @@ export default function ChatScreen() {
   const [selectedProvider, setSelectedProvider] = useState<Provider>('openrouter');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
+  const [musicDraft, setMusicDraft] = useState<{ style: string; lyrics: string } | null>(null);
+  const [fluxDraft, setFluxDraft] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visibilityMapRef = useRef<Map<string, boolean>>(new Map());
 
@@ -109,11 +114,27 @@ export default function ChatScreen() {
         ? REPLICATE_MODELS
         : FAL_MODELS;
       
-      if (models.length > 0 && !selectedModel) {
+      // Check if current model is valid for this provider
+      const isModelValid = models.some(m => m.id === selectedModel);
+      
+      if (!isModelValid && models.length > 0) {
         setSelectedModel(models[0].id);
       }
     }
   }, [selectedProvider]);
+
+  // Save provider/model changes to local storage
+  useEffect(() => {
+    if (selectedProvider) {
+      saveLastProvider(selectedProvider);
+    }
+  }, [selectedProvider]);
+
+  useEffect(() => {
+    if (selectedModel) {
+      saveLastModel(selectedModel);
+    }
+  }, [selectedModel]);
 
   // Load saved parameters when model or provider changes
   useEffect(() => {
@@ -325,6 +346,30 @@ export default function ChatScreen() {
     setCurrentResponseIndex(messageId, newIndex);
   };
 
+  const handleEditMessage = (message: ChatMessage) => {
+    try {
+      const parsed = JSON.parse(message.content);
+      if (parsed.prompt && parsed.lyrics_prompt) {
+        // Force a new object reference even if values are same to trigger useEffect
+        // But since we clear on send, just setting it is fine.
+        // To be safe against repeated clicks, we can use a timestamp or just rely on the fact that
+        // the input clears itself.
+        setMusicDraft({
+          style: parsed.prompt,
+          lyrics: parsed.lyrics_prompt
+        });
+      } else if (parsed.prompt && (selectedModel === 'fal-ai/flux/dev')) {
+        setFluxDraft(parsed.prompt);
+      }
+    } catch (e) {
+      console.error('Failed to parse message for editing:', e);
+      // Fallback for plain text messages if any
+      if (selectedModel === 'fal-ai/flux/dev') {
+        setFluxDraft(message.content);
+      }
+    }
+  };
+
   // Helper to get current AI response content
   const getCurrentResponseContent = (message: ChatMessage): string => {
     const response = message.responses?.[message.currentResponseIndex ?? 0];
@@ -465,6 +510,12 @@ export default function ChatScreen() {
                     onCopy={() => handleCopyMessage(getCurrentResponseContent(message))}
                     onNavigateResponse={(direction) => handleNavigateResponse(message.id, direction)}
                     onVisibilityChange={(isVisible) => handleVisibilityChange(currentResponse.id, isVisible)}
+                    onEdit={
+                      (selectedModel === 'fal-ai/minimax-music/v1.5' || selectedModel === 'fal-ai/minimax-music/v2' || selectedModel === 'fal-ai/flux/dev') 
+                        ? () => handleEditMessage(message) 
+                        : undefined
+                    }
+                    onUpdateNote={(note) => updateAIResponseNote(message.id, currentResponse.id, note)}
                   />
                 )}
               </div>
@@ -497,11 +548,26 @@ export default function ChatScreen() {
       </div>
 
       {/* Input area */}
-      <ChatInput
-        onSend={handleSendMessage}
-        disabled={isLoading || !selectedModel}
-        placeholder={selectedModel ? 'Type your message...' : 'Select a model to start chatting'}
-      />
+      {selectedProvider === 'fal' && (selectedModel === 'fal-ai/minimax-music/v1.5' || selectedModel === 'fal-ai/minimax-music/v2') ? (
+        <MusicGenerationInput
+          onSend={handleSendMessage}
+          disabled={isLoading}
+          initialStyle={musicDraft?.style}
+          initialLyrics={musicDraft?.lyrics}
+        />
+      ) : selectedProvider === 'fal' && selectedModel === 'fal-ai/flux/dev' ? (
+        <FluxGenerationInput
+          onSend={handleSendMessage}
+          disabled={isLoading}
+          initialPrompt={fluxDraft}
+        />
+      ) : (
+        <ChatInput
+          onSend={handleSendMessage}
+          disabled={isLoading || !selectedModel}
+          placeholder={selectedModel ? 'Type your message...' : 'Select a model to start chatting'}
+        />
+      )}
     </div>
   );
 }

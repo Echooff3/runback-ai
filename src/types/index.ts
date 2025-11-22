@@ -67,6 +67,7 @@ export interface AIResponse {
   requestId?: string;
   logs?: string[];
   mediaAssets?: MediaAsset[];
+  notes?: string;
   metadata?: {
     tokenCount?: number;
     responseTime?: number;
