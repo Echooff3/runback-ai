@@ -4,6 +4,8 @@ import { useThemeStore } from './stores/themeStore';
 import { migrateStorage } from './lib/storage/localStorage';
 import ChatScreen from './components/chat/ChatScreen';
 import SettingsScreen from './components/settings/SettingsScreen';
+import SystemPromptsScreen from './components/prompts/SystemPromptsScreen';
+import SlashPromptsScreen from './components/prompts/SlashPromptsScreen';
 
 function App() {
   const initTheme = useThemeStore((state) => state.initTheme);
@@ -21,6 +23,8 @@ function App() {
       <Routes>
         <Route path="/" element={<ChatScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
+        <Route path="/system-prompts" element={<SystemPromptsScreen />} />
+        <Route path="/slash-prompts" element={<SlashPromptsScreen />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
