@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { XMarkIcon, StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import type { ChatSession } from '../../types';
@@ -8,6 +9,7 @@ interface SessionTabProps {
   onClick: () => void;
   onClose: () => void;
   onToggleStar: () => void;
+  onRename: (newTitle: string) => void;
 }
 
 export default function SessionTab({ 
@@ -15,12 +17,24 @@ export default function SessionTab({
   isActive, 
   onClick, 
   onClose,
-  onToggleStar 
+  onToggleStar,
+  onRename
 }: SessionTabProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(session.title || '');
+  const inputRef = useRef<HTMLInputElement>(null);
+
   const displayTitle = session.title || 'New Chat';
   const truncatedTitle = displayTitle.length > 20 
     ? `${displayTitle.slice(0, 20)}...` 
     : displayTitle;
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
 
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -30,6 +44,29 @@ export default function SessionTab({
   const handleToggleStar = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleStar();
+  };
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditTitle(session.title || '');
+    setIsEditing(true);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSave();
+    } else if (e.key === 'Escape') {
+      setIsEditing(false);
+      setEditTitle(session.title || '');
+    }
+  };
+
+  const handleSave = () => {
+    if (editTitle.trim() && editTitle !== session.title) {
+      onRename(editTitle.trim());
+    }
+    setIsEditing(false);
   };
 
   return (
@@ -59,9 +96,26 @@ export default function SessionTab({
       </button>
 
       {/* Title */}
-      <span className="flex-1 text-sm font-medium truncate">
-        {truncatedTitle}
-      </span>
+      {isEditing ? (
+        <input
+          ref={inputRef}
+          type="text"
+          value={editTitle}
+          onChange={(e) => setEditTitle(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onBlur={handleSave}
+          onClick={(e) => e.stopPropagation()}
+          className="flex-1 min-w-0 bg-white dark:bg-gray-700 border border-indigo-300 dark:border-indigo-600 rounded px-1 py-0.5 text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        />
+      ) : (
+        <span 
+          className="flex-1 text-sm font-medium truncate"
+          onDoubleClick={handleDoubleClick}
+          title="Double click to rename"
+        >
+          {truncatedTitle}
+        </span>
+      )}
 
       {/* Close button (disabled if starred) */}
       <button

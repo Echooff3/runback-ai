@@ -61,6 +61,11 @@ export default function SettingsScreen() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Configure your API keys for AI providers. Keys are stored locally in your browser.
             </p>
+            <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+              <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                ⚠️ <strong>Disclaimer:</strong> This is a purpose-built app for hobbyists. Please proceed only if you know what you are doing.
+              </p>
+            </div>
           </div>
 
           <div className="space-y-4">

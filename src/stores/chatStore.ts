@@ -65,7 +65,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
   
   loadSessions: async () => {
     try {
-      const sessions = await loadOpenSessions();
+      let sessions = await loadOpenSessions();
+      
+      // Enforce max 5 open sessions
+      if (sessions.length > 5) {
+        const sessionsToClose = sessions.slice(5);
+        sessions = sessions.slice(0, 5);
+        
+        // Close excess sessions in background
+        Promise.all(sessionsToClose.map(s => closeSessionInDB(s.id))).catch(console.error);
+      }
+
       set({ sessions });
       
       // If no active session, set first one as active
@@ -93,12 +103,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
   
   createNewSession: async (provider: Provider, model?: string, systemPromptId?: string) => {
+    const state = get();
+    let currentSessions = state.sessions;
+
+    // Enforce max 5 open sessions (keep 4 to add 1)
+    if (currentSessions.length >= 5) {
+      const sessionsToClose = currentSessions.slice(4);
+      currentSessions = currentSessions.slice(0, 4);
+      
+      // Close excess sessions in background
+      Promise.all(sessionsToClose.map(s => closeSessionInDB(s.id))).catch(console.error);
+      
+      // Update state to avoid flicker/race conditions if we used state.sessions directly later
+      set({ sessions: currentSessions });
+    }
+
     const newSession = createSession(provider, model, systemPromptId);
     await saveSessionToDB(newSession);
     
-    const state = get();
     set({ 
-      sessions: [newSession, ...state.sessions],
+      sessions: [newSession, ...currentSessions],
       activeSessionId: newSession.id,
       currentSession: newSession,
       error: null

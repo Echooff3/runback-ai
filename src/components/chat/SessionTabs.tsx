@@ -17,6 +17,7 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
     createNewSession,
     closeSessionTab,
     toggleStarSession,
+    updateSessionTitle,
   } = useChatStore();
 
   const handleNewSession = async () => {
@@ -36,6 +37,10 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
     await toggleStarSession(sessionId);
   };
 
+  const handleRenameSession = async (sessionId: string, newTitle: string) => {
+    await updateSessionTitle(sessionId, newTitle);
+  };
+
   return (
     <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
       {/* Scrollable tabs container */}
@@ -48,6 +53,7 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
             onClick={() => switchSession(session.id)}
             onClose={() => handleCloseSession(session.id)}
             onToggleStar={() => handleToggleStar(session.id)}
+            onRename={(newTitle) => handleRenameSession(session.id, newTitle)}
           />
         ))}
       </div>
