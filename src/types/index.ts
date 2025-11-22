@@ -68,6 +68,7 @@ export interface AIResponse {
   logs?: string[];
   mediaAssets?: MediaAsset[];
   notes?: string;
+  isCollapsed?: boolean;
   metadata?: {
     tokenCount?: number;
     responseTime?: number;
@@ -84,6 +85,7 @@ export interface ChatMessage {
   currentResponseIndex?: number;
   provider?: Provider;
   model?: string;
+  isCollapsed?: boolean;
   metadata?: {
     tokenCount?: number;
     responseTime?: number;

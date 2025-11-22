@@ -30,6 +30,7 @@ export default function ChatScreen() {
     updateAIResponseStatus,
     updateAIResponseNote,
     setCurrentResponseIndex,
+    toggleMessageCollapse,
     startPolling,
     stopPolling,
     stopAllPolling,
@@ -502,6 +503,7 @@ export default function ChatScreen() {
                   message={message}
                   onRerun={() => handleRerunMessage(message)}
                   onCopy={() => handleCopyMessage(message.content)}
+                  onToggleCollapse={() => toggleMessageCollapse(message.id)}
                 />
                 {hasResponses && currentResponse && (
                   <AIMessage
@@ -516,6 +518,7 @@ export default function ChatScreen() {
                         : undefined
                     }
                     onUpdateNote={(note) => updateAIResponseNote(message.id, currentResponse.id, note)}
+                    onToggleCollapse={() => updateAIResponseStatus(message.id, currentResponse.id, { isCollapsed: !currentResponse.isCollapsed })}
                   />
                 )}
               </div>
@@ -554,6 +557,7 @@ export default function ChatScreen() {
           disabled={isLoading}
           initialStyle={musicDraft?.style}
           initialLyrics={musicDraft?.lyrics}
+          selectedModel={selectedModel}
         />
       ) : selectedProvider === 'fal' && selectedModel === 'fal-ai/flux/dev' ? (
         <FluxGenerationInput

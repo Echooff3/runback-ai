@@ -2,6 +2,23 @@
 
 ## Recent Updates
 
+### ✨ Helper Model & AI Polisher (November 2025)
+Implemented a "Helper Model" setting and an AI-powered "Polisher" for music generation prompts.
+
+**Key Features:**
+- 🤖 **Helper Model Setting**: Configure a specific model (default: `x-ai/grok-3-mini`) for background tasks.
+- 🎹 **Music Prompt Polisher**: "Polish" button in Music Generation input uses the helper model to enhance style descriptions.
+- ⚙️ **Configurable**: Users can change the helper model in Settings.
+- 🔒 **Secure**: Uses the existing OpenRouter API key.
+
+**Implementation Details:**
+- **Storage**: Added `HELPER_MODEL` key and persistence functions.
+- **Store**: Updated `settingsStore` to manage `helperModel` state.
+- **UI**: Added Helper Model input to Settings and Star icon button to Music Input.
+- **Logic**: Created `AiPolisherTasks` class to handle prompt enhancement via OpenRouter.
+
+---
+
 ### 🚀 FAL Queue-Based Status Checking (November 2025)
 Implemented FAL queue API with viewport-aware polling and media asset display:
 

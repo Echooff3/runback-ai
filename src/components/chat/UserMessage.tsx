@@ -1,15 +1,17 @@
 import { format } from 'date-fns';
-import { ArrowPathIcon, ClipboardIcon } from '@heroicons/react/24/outline';
+import { ArrowPathIcon, ClipboardIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import type { ChatMessage } from '../../types';
 
 interface UserMessageProps {
   message: ChatMessage;
   onRerun: () => void;
   onCopy: () => void;
+  onToggleCollapse: () => void;
 }
 
-export default function UserMessage({ message, onRerun, onCopy }: UserMessageProps) {
+export default function UserMessage({ message, onRerun, onCopy, onToggleCollapse }: UserMessageProps) {
   const responseCount = message.responses?.length || 0;
+  const isCollapsed = message.isCollapsed || false;
   
   const formatContent = (content: string) => {
     try {
@@ -39,32 +41,58 @@ export default function UserMessage({ message, onRerun, onCopy }: UserMessagePro
 
   return (
     <div className="flex justify-end mb-4">
-      <div className="max-w-[80%]">
-        <div className="bg-indigo-600 text-white rounded-lg px-4 py-3">
-          {formatContent(message.content)}
-        </div>
-        <div className="flex items-center justify-end gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
-          <span>{format(new Date(message.timestamp), 'h:mm a')}</span>
-          {responseCount > 0 && (
-            <span className="bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded">
-              {responseCount} {responseCount === 1 ? 'response' : 'responses'}
-            </span>
+      <div className="max-w-[80%] flex flex-col items-end">
+        <div 
+          className={`bg-indigo-600 text-white rounded-lg px-4 py-3 relative ${isCollapsed ? 'cursor-pointer' : ''}`}
+          onClick={isCollapsed ? onToggleCollapse : undefined}
+        >
+          {!isCollapsed && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}
+              className="absolute top-2 right-2 p-1 hover:bg-indigo-500 rounded opacity-50 hover:opacity-100 transition-opacity"
+              title="Collapse message"
+            >
+              <ChevronUpIcon className="w-4 h-4" />
+            </button>
           )}
-          <button
-            onClick={onRerun}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-            title="Re-run prompt"
-          >
-            <ArrowPathIcon className="w-5 h-5" />
-          </button>
-          <button
-            onClick={onCopy}
-            className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
-            title="Copy message"
-          >
-            <ClipboardIcon className="w-5 h-5" />
-          </button>
+
+          {isCollapsed ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm italic opacity-80 truncate max-w-[200px]">
+                {message.content.replace(/\n/g, ' ')}
+              </span>
+              <ChevronDownIcon className="w-4 h-4 opacity-70" />
+            </div>
+          ) : (
+            <div className="pr-6">
+              {formatContent(message.content)}
+            </div>
+          )}
         </div>
+        {!isCollapsed && (
+          <div className="flex items-center justify-end gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
+            <span>{format(new Date(message.timestamp), 'h:mm a')}</span>
+            {responseCount > 0 && (
+              <span className="bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded">
+                {responseCount} {responseCount === 1 ? 'response' : 'responses'}
+              </span>
+            )}
+            <button
+              onClick={onRerun}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              title="Re-run prompt"
+            >
+              <ArrowPathIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={onCopy}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              title="Copy message"
+            >
+              <ClipboardIcon className="w-5 h-5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

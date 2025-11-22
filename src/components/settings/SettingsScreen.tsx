@@ -8,7 +8,7 @@ import type { Provider } from '../../types';
 
 export default function SettingsScreen() {
   const navigate = useNavigate();
-  const { loadAPIConfigs, updateAPIConfig, getProviderConfig } = useSettingsStore();
+  const { loadAPIConfigs, updateAPIConfig, getProviderConfig, helperModel, setHelperModel } = useSettingsStore();
 
   useEffect(() => {
     loadAPIConfigs();
@@ -81,6 +81,28 @@ export default function SettingsScreen() {
         </section>
 
 
+
+        {/* Divider */}
+        <div className="border-t border-gray-200 dark:border-gray-700"></div>
+
+        {/* Helper Model Section */}
+        <section>
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Helper Model</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Specify a model to be used for helper tasks (e.g., polishing prompts).
+            </p>
+          </div>
+          <div className="max-w-md">
+            <input
+              type="text"
+              value={helperModel}
+              onChange={(e) => setHelperModel(e.target.value)}
+              placeholder="e.g. x-ai/grok-3-mini"
+              className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100"
+            />
+          </div>
+        </section>
 
         {/* Divider */}
         <div className="border-t border-gray-200 dark:border-gray-700"></div>

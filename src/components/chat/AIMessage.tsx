@@ -7,7 +7,9 @@ import {
   ChevronRightIcon,
   ArrowDownTrayIcon,
   PencilSquareIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ChevronUpIcon,
+  ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import type { ChatMessage, MediaAsset } from '../../types';
 
@@ -19,6 +21,7 @@ interface AIMessageProps {
   onVisibilityChange?: (isVisible: boolean) => void;
   onEdit?: () => void;
   onUpdateNote?: (note: string) => void;
+  onToggleCollapse: () => void;
 }
 
 export default function AIMessage({ 
@@ -28,7 +31,8 @@ export default function AIMessage({
   onNavigateResponse,
   onVisibilityChange,
   onEdit,
-  onUpdateNote
+  onUpdateNote,
+  onToggleCollapse
 }: AIMessageProps) {
   const messageRef = useRef<HTMLDivElement>(null);
   const [isEditingNote, setIsEditingNote] = useState(false);
@@ -37,6 +41,7 @@ export default function AIMessage({
   const responses = message.responses || [];
   const currentIndex = message.currentResponseIndex ?? 0;
   const currentResponse = responses[currentIndex];
+  const isCollapsed = currentResponse?.isCollapsed || false;
   
   // Initialize note content from response
   useEffect(() => {
@@ -120,8 +125,22 @@ export default function AIMessage({
   
   return (
     <div ref={messageRef} className="flex justify-start mb-4">
-      <div className="max-w-[80%]">
-        <div className={`rounded-lg px-4 py-3 border ${providerColor}`}>
+      <div className="max-w-[80%] w-full">
+        <div className={`rounded-lg px-4 py-3 border ${providerColor} relative`}>
+          <button 
+            onClick={onToggleCollapse}
+            className="absolute top-2 right-2 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded opacity-50 hover:opacity-100 transition-opacity z-10"
+            title={isCollapsed ? "Expand response" : "Collapse response"}
+          >
+            {isCollapsed ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronUpIcon className="w-4 h-4" />}
+          </button>
+
+          {isCollapsed ? (
+            <div className="text-sm text-gray-500 italic pr-6">
+              {currentResponse.provider} response collapsed
+            </div>
+          ) : (
+            <>
           {/* Status Badge */}
           {currentResponse.status && currentResponse.status !== 'completed' && (
             <div className="mb-3">
@@ -284,9 +303,12 @@ export default function AIMessage({
               </button>
             </div>
           )}
+          </>
+          )}
         </div>
         
         {/* Metadata */}
+        {!isCollapsed && (
         <div className="flex items-center justify-between gap-2 mt-1 text-xs text-gray-500 dark:text-gray-400">
           <div className="flex items-center gap-2">
             <span className="capitalize">{currentResponse.provider}</span>
@@ -346,6 +368,7 @@ export default function AIMessage({
             </button>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

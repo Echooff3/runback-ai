@@ -107,6 +107,14 @@ export function getLastModel(): string | null {
   return localStorage.getItem(STORAGE_KEYS.LAST_MODEL);
 }
 
+export function saveHelperModel(model: string): void {
+  localStorage.setItem(STORAGE_KEYS.HELPER_MODEL, model);
+}
+
+export function getHelperModel(): string | null {
+  return localStorage.getItem(STORAGE_KEYS.HELPER_MODEL);
+}
+
 
 // Model Parameters operations (unique per provider + model)
 const MODEL_PARAMS_KEY_PREFIX = 'model_params_';

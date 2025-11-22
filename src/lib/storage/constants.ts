@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   APP_VERSION: 'runback_app_version',
   LAST_PROVIDER: 'runback_last_provider',
   LAST_MODEL: 'runback_last_model',
+  HELPER_MODEL: 'runback_helper_model',
   ONBOARDING_COMPLETE: 'runback_onboarding_complete',
   STORAGE_VERSION: 'runback_storage_version',
   ACTIVE_SESSION_ID: 'runback_active_session_id',
