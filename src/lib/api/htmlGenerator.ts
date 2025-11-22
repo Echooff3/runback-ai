@@ -22,7 +22,7 @@ interface GenerationCache {
 
 // Cache for generated forms
 const formCache = new Map<string, GenerationCache>();
-const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
+// const CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 
 /**
@@ -33,7 +33,7 @@ export async function generateParameterForm(
   provider: string,
   inputSchema: any,
   _openrouterApiKey: string, // Unused now
-  forceRegenerate = false
+  _forceRegenerate = false
 ): Promise<GeneratedForm> {
   const db = getDBInstance();
   const cacheKey = `${provider}_${modelId}`;
