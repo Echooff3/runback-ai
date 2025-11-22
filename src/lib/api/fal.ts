@@ -113,8 +113,15 @@ export class FalClient {
           // Check if prompt is a JSON string containing our special structure
           const parsed = JSON.parse(prompt);
           if (parsed.prompt && parsed.lyrics_prompt) {
-            input.prompt = parsed.prompt;
-            input.lyrics_prompt = parsed.lyrics_prompt;
+            // v1.5 has reversed API parameters - flip them
+            if (model === 'fal-ai/minimax-music/v1.5') {
+              input.prompt = parsed.lyrics_prompt;
+              input.lyrics_prompt = parsed.prompt;
+            } else {
+              // v2 uses the correct order
+              input.prompt = parsed.prompt;
+              input.lyrics_prompt = parsed.lyrics_prompt;
+            }
           }
         } catch (e) {
           // Not JSON, treat as regular prompt (style) and empty lyrics or handle gracefully
