@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  font-size: 12px;
+}
+
 @keyframes slide-up {
   from {
     transform: translateY(100%);
