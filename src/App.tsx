@@ -17,7 +17,7 @@ function App() {
   }, [initTheme]);
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         <Route path="/" element={<ChatScreen />} />
         <Route path="/settings" element={<SettingsScreen />} />
