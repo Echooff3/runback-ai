@@ -60,6 +60,13 @@ export class FalClient {
     additionalParameters?: Record<string, any>
   ): Promise<QueueSubmitResult> {
     try {
+      console.log('[FAL] submitToQueue called with:', {
+        model,
+        prompt,
+        systemPrompt,
+        additionalParameters
+      });
+
       // Build input object with base parameters
       const input: Record<string, any> = {};
 
@@ -97,6 +104,8 @@ export class FalClient {
       if (systemPrompt) {
         input.system_prompt = systemPrompt;
       }
+
+      console.log('[FAL] Final input object being sent:', input);
 
       const { request_id } = await fal.queue.submit(model, {
         input,
@@ -253,6 +262,13 @@ export class FalClient {
     const startTime = Date.now();
 
     try {
+      console.log('[FAL] sendMessage called with:', {
+        model,
+        prompt,
+        systemPrompt,
+        additionalParameters
+      });
+
       // Build input object with base parameters
       const input: Record<string, any> = {};
 
@@ -295,6 +311,8 @@ export class FalClient {
       if (systemPrompt) {
         input.system_prompt = systemPrompt;
       }
+
+      console.log('[FAL] Final input object being sent:', input);
 
       const result = await fal.subscribe(model, {
         input,

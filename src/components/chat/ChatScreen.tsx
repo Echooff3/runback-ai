@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient } from '../../lib/api';
-import { getLastProvider, getLastModel } from '../../lib/storage/localStorage';
+import { getLastProvider, getLastModel, getModelParameters } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
 import type { Provider, ChatMessage, ModelParameters, AIResponse } from '../../types';
 import SessionTabs from './SessionTabs';
@@ -42,6 +42,17 @@ export default function ChatScreen() {
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visibilityMapRef = useRef<Map<string, boolean>>(new Map());
+
+  // Debug logging for parameter changes
+  useEffect(() => {
+    console.log('[ChatScreen] modelParameters updated:', JSON.stringify(modelParameters, null, 2));
+  }, [modelParameters]);
+
+  // Handler for when parameters are updated from the modal
+  const handleParametersChange = (parameters: ModelParameters) => {
+    console.log('[ChatScreen] handleParametersChange called with:', JSON.stringify(parameters, null, 2));
+    setModelParameters(parameters);
+  };
   
   // Cleanup polling on unmount
   useEffect(() => {
@@ -104,6 +115,20 @@ export default function ChatScreen() {
     }
   }, [selectedProvider]);
 
+  // Load saved parameters when model or provider changes
+  useEffect(() => {
+    if (selectedModel && selectedProvider) {
+      const savedParams = getModelParameters(selectedModel, selectedProvider);
+      if (savedParams) {
+        console.log('[ChatScreen] Loading saved parameters for', selectedModel, ':', JSON.stringify(savedParams, null, 2));
+        setModelParameters(savedParams);
+      } else {
+        console.log('[ChatScreen] No saved parameters found for', selectedModel);
+        setModelParameters({});
+      }
+    }
+  }, [selectedModel, selectedProvider]);
+
   // Save provider/model changes to the current session
   useEffect(() => {
     if (currentSession && selectedProvider && selectedModel) {
@@ -160,6 +185,8 @@ export default function ChatScreen() {
 
     const falClient = new FalClient(falConfig.apiKey);
     const startTime = Date.now();
+
+    console.log('[ChatScreen] Submitting to FAL with modelParameters:', JSON.stringify(modelParameters, null, 2));
 
     // Submit to queue
     const { requestId } = await falClient.submitToQueue(
@@ -395,7 +422,7 @@ export default function ChatScreen() {
               provider={selectedProvider}
               selectedModel={selectedModel}
               onModelChange={setSelectedModel}
-              onParametersChange={setModelParameters}
+              onParametersChange={handleParametersChange}
               showParametersButton={showParametersButton}
               falApiKey={falApiKey}
               openrouterApiKey={openrouterApiKey}

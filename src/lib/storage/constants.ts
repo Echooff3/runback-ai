@@ -11,7 +11,6 @@ export const STORAGE_KEYS = {
   ONBOARDING_COMPLETE: 'runback_onboarding_complete',
   STORAGE_VERSION: 'runback_storage_version',
   ACTIVE_SESSION_ID: 'runback_active_session_id',
-  HTML_GENERATION_MODEL: 'runback_html_generation_model',
 } as const;
 
 export const CURRENT_STORAGE_VERSION = 1;

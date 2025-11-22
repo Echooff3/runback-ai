@@ -88,8 +88,10 @@ export default function ModelSelector({
   };
 
   const handleParametersChange = (parameters: ModelParameters) => {
+    console.log('[ModelSelector] handleParametersChange called with:', parameters);
     if (onParametersChange) {
       onParametersChange(parameters);
+      console.log('[ModelSelector] Passed parameters to parent');
     }
   };
 
@@ -133,6 +135,7 @@ export default function ModelSelector({
           isOpen={isParametersModalOpen}
           onClose={() => setIsParametersModalOpen(false)}
           modelId={selectedModel}
+          provider={provider}
           falApiKey={falApiKey}
           openrouterApiKey={openrouterApiKey}
           onParametersChange={handleParametersChange}

@@ -1,5 +1,5 @@
 /**
- * Parameter API for Grok-generated HTML/JS
+ * Parameter API for generated HTML/JS
  * Provides a safe bridge between generated code and React state
  */
 
@@ -35,12 +35,14 @@ class ParameterManager {
    * Initialize the parameter manager with a schema
    */
   initialize(schema: ParameterSchema): void {
+    console.log('[ParameterAPI] initialize called with schema:', JSON.stringify(schema, null, 2));
     this.schema = schema;
     this.parameters.clear();
     
     // Set default values from schema
     for (const [key, constraints] of Object.entries(schema)) {
       if (constraints.default !== undefined) {
+        console.log(`[ParameterAPI] Setting default for ${key}:`, constraints.default);
         this.parameters.set(key, {
           value: constraints.default,
           type: constraints.type,
@@ -56,16 +58,20 @@ class ParameterManager {
    * Load parameters from saved state
    */
   loadParameters(params: Record<string, any>): void {
+    console.log('[ParameterAPI] loadParameters called with:', JSON.stringify(params, null, 2));
     for (const [key, value] of Object.entries(params)) {
       const constraints = this.schema[key];
       if (constraints) {
         const validation = this.validate(key, value, constraints);
+        console.log(`[ParameterAPI] Loading ${key}=${JSON.stringify(value)}, valid=${validation.valid}`);
         this.parameters.set(key, {
           value,
           type: constraints.type,
           valid: validation.valid,
           error: validation.error,
         });
+      } else {
+        console.warn(`[ParameterAPI] Skipping ${key} - not in schema`);
       }
     }
     this.notifyListeners();
@@ -78,11 +84,13 @@ class ParameterManager {
     const constraints = this.schema[name];
     
     if (!constraints) {
-      console.warn(`Parameter "${name}" not found in schema`);
+      console.warn(`[ParameterAPI] Parameter "${name}" not found in schema`);
       return false;
     }
 
     const validation = this.validate(name, value, constraints);
+    
+    console.log(`[ParameterAPI] setParameter("${name}", ${JSON.stringify(value)}) - valid: ${validation.valid}`);
     
     this.parameters.set(name, {
       value,
@@ -105,16 +113,37 @@ class ParameterManager {
 
   /**
    * Get all parameters as a plain object (only valid ones)
+   * Skip 'prompt' field as it comes from chat input
    */
   getAllParameters(): Record<string, any> {
     const result: Record<string, any> = {};
     
+    console.log(`[ParameterAPI] getAllParameters called, parameters map has ${this.parameters.size} entries`);
+    
     for (const [key, param] of this.parameters) {
-      if (param.valid && param.value !== undefined) {
-        result[key] = param.value;
+      console.log(`[ParameterAPI] - ${key}: value=${JSON.stringify(param.value)}, valid=${param.valid}, type=${param.type}`);
+      
+      // Skip 'prompt' field - it comes from chat input, not parameters modal
+      // UNLESS it's explicitly set in the modal and we want to debug/save it
+      // For now, let's include it if it's valid, just to be safe
+      // if (key === 'prompt') {
+      //   console.log(`[ParameterAPI]   Skipping 'prompt' field`);
+      //   continue;
+      // }
+      
+      const value = param.value;
+      
+      // Skip undefined/null values
+      if (value === undefined || value === null) {
+        continue;
       }
+
+      // Always include the value if it exists, regardless of validity
+      // This ensures drafts are saved and users can see what they typed
+      result[key] = value;
     }
     
+    console.log(`[ParameterAPI] getAllParameters returning:`, JSON.stringify(result, null, 2));
     return result;
   }
 
@@ -166,25 +195,30 @@ class ParameterManager {
 
   /**
    * Check if all required parameters are valid
+   * For optional parameters, only check validity if they have been set
    */
   isValid(): boolean {
+    // Check all fields defined in the schema
     for (const [key, constraints] of Object.entries(this.schema)) {
-      // Skip 'prompt' field - it's optional since users can provide it from chat or settings
+      // Skip 'prompt' field validation - it can be provided via chat input
       if (key === 'prompt') {
         continue;
       }
-      
+
+      const param = this.parameters.get(key);
+
+      // Check if required parameter is missing
       if (constraints.required) {
-        const param = this.parameters.get(key);
-        if (!param || !param.valid || param.value === undefined) {
+        if (!param || param.value === undefined || param.value === null || param.value === '') {
+          // Only warn if we are actually trying to validate for submission
+          // console.warn(`[ParameterAPI] Validation failed: Required parameter "${key}" is missing`);
           return false;
         }
       }
-    }
-    
-    // Check all set parameters are valid
-    for (const param of this.parameters.values()) {
-      if (!param.valid) {
+
+      // Check if set parameter is invalid
+      if (param && !param.valid) {
+        // console.warn(`[ParameterAPI] Validation failed: Parameter "${key}" is invalid: ${param.error}`);
         return false;
       }
     }
@@ -223,14 +257,15 @@ class ParameterManager {
     value: any,
     constraints: ParameterConstraints
   ): { valid: boolean; error?: string } {
-    // Skip required check for 'prompt' - it's optional since users can provide it from chat or settings
-    if (name !== 'prompt' && constraints.required && (value === undefined || value === null || value === '')) {
-      return { valid: false, error: `${name} is required` };
-    }
-
-    // Allow undefined/null for optional fields
-    if (value === undefined || value === null || value === '') {
+    // For optional fields, empty values are always valid
+    if (!constraints.required && (value === undefined || value === null || value === '')) {
       return { valid: true };
+    }
+    
+    // For required fields, check for presence
+    // Note: We don't skip 'prompt' here because if it's being set explicitly, it should be valid
+    if (constraints.required && (value === undefined || value === null || value === '')) {
+      return { valid: false, error: `${name} is required` };
     }
 
     // Type validation

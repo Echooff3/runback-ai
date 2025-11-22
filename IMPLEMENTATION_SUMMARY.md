@@ -1019,6 +1019,131 @@ interface MediaAsset {
 
 ---
 
+## Recent Update: Provider-Specific Model Parameters (November 2025)
+
+### Overview
+Updated HTML form generation and model parameter storage to be unique per **provider + model** combination, not just model ID. This allows different providers to have different parameter configurations for models with the same name.
+
+### Changes Made
+
+#### 1. **Updated Parameter Storage Functions**
+- **File**: `src/lib/storage/localStorage.ts`
+- **`saveModelParameters()`**: Now requires `provider` parameter, stores with key format `model_params_{provider}_{modelId}`
+- **`getModelParameters()`**: Now requires `provider` parameter to retrieve correct parameters
+- **`clearModelParameters()`**: Updated to accept optional `provider` parameter for targeted clearing
+
+**Before**:
+```typescript
+saveModelParameters(modelId: string, parameters: Record<string, any>)
+getModelParameters(modelId: string)
+clearModelParameters(modelId?: string)
+```
+
+**After**:
+```typescript
+saveModelParameters(modelId: string, provider: string, parameters: Record<string, any>)
+getModelParameters(modelId: string, provider: string)
+clearModelParameters(modelId?: string, provider?: string)
+```
+
+#### 2. **Enhanced ModelParametersModal**
+- **File**: `src/components/chat/ModelParametersModal.tsx`
+- Added `provider` prop to modal interface
+- Updated all parameter save/load/clear operations to use provider
+- Modal title now displays: `{provider} / {modelId}`
+- Form cache uses provider-specific key: `{provider}_{modelId}`
+
+**Props Updated**:
+```typescript
+interface ModelParametersModalProps {
+  // ... other props
+  modelId: string;
+  provider: string;  // NEW - required for unique storage
+  // ...
+}
+```
+
+#### 3. **Updated ModelSelector Component**
+- **File**: `src/components/chat/ModelSelector.tsx`
+- Passes `provider` prop to ModelParametersModal
+- Ensures parameter forms are provider-aware
+
+#### 4. **IndexedDB Form Cache**
+- Form cache in IndexedDB already used composite key `{provider}_{modelId}`
+- No changes needed (already implemented correctly)
+- Consistency between IndexedDB cache and localStorage parameters
+
+### Use Cases Addressed
+
+**Problem Solved**: Models with identical names across different providers had conflicting parameters.
+
+**Example Scenario**:
+- OpenRouter's `flux-1.1-pro` may have different parameters than Replicate's `flux-1.1-pro`
+- FAL's `flux/dev` may have provider-specific configuration options
+- Without provider namespace, parameters would overwrite each other
+
+**Storage Isolation**:
+```typescript
+// Before (collision risk):
+localStorage['model_params_flux-1.1-pro'] = { steps: 50 }
+
+// After (isolated by provider):
+localStorage['model_params_openrouter_flux-1.1-pro'] = { steps: 50, style: 'artistic' }
+localStorage['model_params_fal_flux-1.1-pro'] = { num_inference_steps: 28, guidance_scale: 3.5 }
+```
+
+### Data Migration
+
+**Backward Compatibility**: Old parameters stored without provider prefix are **not automatically migrated**. Users will need to reconfigure parameters once per model after this update.
+
+**Migration Strategy** (if needed in future):
+```typescript
+// Pseudo-code for migration
+Object.keys(localStorage)
+  .filter(key => key.startsWith('model_params_') && !key.includes('_', 13))
+  .forEach(key => {
+    const modelId = key.replace('model_params_', '');
+    const data = localStorage.getItem(key);
+    // Would need provider context to migrate properly
+    // For now, manual reconfiguration is acceptable
+    localStorage.removeItem(key);
+  });
+```
+
+### Files Modified
+
+**Modified**:
+- `src/lib/storage/localStorage.ts` - Updated parameter storage functions
+- `src/components/chat/ModelParametersModal.tsx` - Added provider prop, updated all parameter operations
+- `src/components/chat/ModelSelector.tsx` - Passed provider to modal
+
+**No Database Schema Changes**: IndexedDB form cache already used provider-specific keys.
+
+### Testing Recommendations
+
+1. **Unique Storage**: Configure parameters for same model name on different providers, verify no collisions
+2. **Parameter Persistence**: Save parameters, switch providers, verify parameters don't carry over
+3. **Form Cache**: Regenerate form for same model on different providers, verify unique forms cached
+4. **Clear Operations**: Clear parameters for one provider/model, verify others unaffected
+5. **Modal Display**: Open parameters modal, verify title shows `{provider} / {modelId}`
+6. **Session Switching**: Switch between sessions with different providers, verify parameters load correctly
+
+### Known Limitations
+
+- No automatic migration for existing saved parameters (manual reconfiguration required)
+- No bulk clear by provider (clears all or specific model+provider)
+- No UI to view all saved parameters across providers
+
+### Future Enhancements
+
+- Parameter import/export per provider
+- Parameter presets (save/load named configurations)
+- Bulk parameter management UI in settings
+- Parameter history/versioning
+- Share parameter configs between users (JSON export)
+
+---
+
 ## Resources
 
 - **PRD**: `/PRD.md` (comprehensive product requirements)

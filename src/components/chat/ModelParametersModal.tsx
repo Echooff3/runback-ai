@@ -23,6 +23,7 @@ interface ModelParametersModalProps {
   isOpen: boolean;
   onClose: () => void;
   modelId: string;
+  provider: string;
   falApiKey: string;
   openrouterApiKey: string;
   onParametersChange: (parameters: ModelParameters) => void;
@@ -33,6 +34,7 @@ export default function ModelParametersModal({
   isOpen,
   onClose,
   modelId,
+  provider,
   falApiKey,
   openrouterApiKey,
   onParametersChange,
@@ -42,46 +44,90 @@ export default function ModelParametersModal({
   const [error, setError] = useState<string | null>(null);
   const [generatedHTML, setGeneratedHTML] = useState<string>('');
   const [generatedJS, setGeneratedJS] = useState<string>('');
-  const [hasGenerated, setHasGenerated] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
 
   // Load and generate form when modal opens
   useEffect(() => {
-    if (isOpen && !hasGenerated) {
+    console.log('[ModelParametersModal] Mount/Update: isOpen=', isOpen, 'modelId=', modelId);
+    if (isOpen) {
       loadAndGenerateForm();
     }
+    return () => {
+      console.log('[ModelParametersModal] Unmount/Cleanup (isOpen/modelId effect)');
+    };
   }, [isOpen, modelId]);
 
   // Install global API and execute JS when form is ready
   useEffect(() => {
-    if (generatedHTML && generatedJS) {
+    console.log('[ModelParametersModal] Effect: generatedHTML/JS changed. HTML length:', generatedHTML.length);
+    if (generatedHTML && generatedJS && isOpen) {
+      console.log('[ModelParametersModal] Installing Global ParameterAPI');
       installGlobalParameterAPI();
 
       // Subscribe to parameter changes
       unsubscribeRef.current = parameterManager.onChange((params) => {
+        console.log('[ModelParametersModal] Parameters changed via form interaction:', JSON.stringify(params, null, 2));
         onParametersChange(params);
       });
 
-      // Execute the generated JavaScript
-      try {
-        // Use Function constructor for safer eval alternative
-        const func = new Function(generatedJS);
-        func();
-      } catch (err) {
-        console.error('Failed to execute generated JavaScript:', err);
-        setError('Failed to initialize form controls');
-      }
+      // Execute the generated JavaScript after a small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        try {
+          console.log('[ModelParametersModal] Executing generated JS...');
+          // Use Function constructor for safer eval alternative
+          const func = new Function(generatedJS);
+          func();
+          
+          // After executing JS, populate form fields with current parameter values
+          const currentParams = parameterManager.getAllParameters();
+          console.log('[ModelParametersModal] Populating form with params:', JSON.stringify(currentParams));
+          for (const [key, value] of Object.entries(currentParams)) {
+            const element = document.getElementById(key);
+            if (element) {
+              if (element instanceof HTMLInputElement) {
+                if (element.type === 'checkbox') {
+                  element.checked = Boolean(value);
+                } else if (element.type === 'number' || element.type === 'range') {
+                  element.value = String(value);
+                } else {
+                  element.value = String(value);
+                }
+                // Trigger change event to update any displays (like range value displays)
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+              } else if (element instanceof HTMLTextAreaElement) {
+                if (typeof value === 'object') {
+                  element.value = JSON.stringify(value, null, 2);
+                } else {
+                  element.value = String(value);
+                }
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+              } else if (element instanceof HTMLSelectElement) {
+                element.value = String(value);
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+            } else {
+                console.warn('[ModelParametersModal] Could not find element to populate:', key);
+            }
+          }
+        } catch (err) {
+          console.error('Failed to execute generated JavaScript:', err);
+          setError('Failed to initialize form controls');
+        }
+      }, 100);
 
       return () => {
+        console.log('[ModelParametersModal] Cleanup: Uninstalling Global ParameterAPI');
+        clearTimeout(timer);
         if (unsubscribeRef.current) {
           unsubscribeRef.current();
         }
         uninstallGlobalParameterAPI();
       };
     }
-  }, [generatedHTML, generatedJS]);
+  }, [generatedHTML, generatedJS, isOpen]);
 
   const loadAndGenerateForm = async () => {
     setIsLoading(true);
@@ -101,15 +147,16 @@ export default function ModelParametersModal({
       parameterManager.initialize(paramSchema);
 
       // Step 3: Load saved parameters or use initial values
-      const savedParams = getModelParameters(modelId) || initialParameters;
+      const savedParams = getModelParameters(modelId, provider) || initialParameters;
+      console.log('[ModelParametersModal] Loading saved parameters:', JSON.stringify(savedParams, null, 2));
       if (savedParams) {
         parameterManager.loadParameters(savedParams);
       }
 
-      // Step 4: Generate HTML form with Grok
+      // Step 4: Generate HTML form procedurally
       const result = await generateParameterForm(
         modelId,
-        'fal',
+        provider,
         inputSchema,
         openrouterApiKey,
         false
@@ -159,8 +206,9 @@ export default function ModelParametersModal({
 
       setGeneratedHTML(sanitized);
       setGeneratedJS(result.javascript);
-      setHasGenerated(true);
-      onParametersChange(parameterManager.getAllParameters());
+      const currentParams = parameterManager.getAllParameters();
+      console.log('[ModelParametersModal] Initial parameters after form generation:', JSON.stringify(currentParams, null, 2));
+      onParametersChange(currentParams);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
@@ -176,7 +224,7 @@ export default function ModelParametersModal({
 
     try {
       // Clear cached form
-      await clearFormCache(modelId, 'fal');
+      await clearFormCache(modelId, provider);
 
       // Fetch schema again
       const schema = await fetchModelSchema(modelId, falApiKey, true);
@@ -189,7 +237,7 @@ export default function ModelParametersModal({
       // Generate new form
       const result = await generateParameterForm(
         modelId,
-        'fal',
+        provider,
         inputSchema,
         openrouterApiKey,
         true
@@ -253,14 +301,29 @@ export default function ModelParametersModal({
   };
 
   const handleClearSaved = () => {
-    clearModelParameters(modelId);
+    clearModelParameters(modelId, provider);
     parameterManager.resetParameters();
     onParametersChange(parameterManager.getAllParameters());
   };
 
-  const handleSave = () => {
+  const handleSave = (e?: React.MouseEvent) => {
+    console.log('[ModelParametersModal] handleSave called. Event:', e);
+    if (e) {
+      console.log('[ModelParametersModal] Event type:', e.type);
+      console.log('[ModelParametersModal] Event target:', e.target);
+    } else {
+      console.log('[ModelParametersModal] handleSave called without event (programmatically?)');
+      console.trace('[ModelParametersModal] handleSave stack trace');
+    }
+
     const params = parameterManager.getAllParameters();
-    saveModelParameters(modelId, params);
+    console.log('[ModelParametersModal] Saving parameters:', JSON.stringify(params, null, 2));
+    console.log('[ModelParametersModal] Parameter validation state:', parameterManager.isValid());
+    console.log('[ModelParametersModal] All parameters with state:', JSON.stringify(parameterManager.getAllParametersWithState(), null, 2));
+    saveModelParameters(modelId, provider, params);
+    console.log('[ModelParametersModal] Parameters saved to localStorage');
+    onParametersChange(params);
+    console.log('[ModelParametersModal] onParametersChange called with:', JSON.stringify(params, null, 2));
     onClose();
   };
 
@@ -280,7 +343,7 @@ export default function ModelParametersModal({
               Model Parameters
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 truncate max-w-md">
-              {modelId}
+              {provider} / {modelId}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -326,7 +389,7 @@ export default function ModelParametersModal({
               </div>
               <p className="text-gray-600 dark:text-gray-400">Generating parameter form...</p>
               <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                Using Grok AI to create controls
+                Creating controls from schema
               </p>
             </div>
           ) : error ? (
@@ -380,9 +443,10 @@ export default function ModelParametersModal({
                 </button>
               </div>
               <button
+                type="button"
                 onClick={handleSave}
-                disabled={!parameterManager.isValid()}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+                title={parameterManager.isValid() ? 'Save parameters' : `Validation errors: ${Object.values(parameterManager.getErrors()).join(', ')}`}
               >
                 Save & Close
               </button>

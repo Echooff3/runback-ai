@@ -107,38 +107,37 @@ export function getLastModel(): string | null {
   return localStorage.getItem(STORAGE_KEYS.LAST_MODEL);
 }
 
-// HTML Generation Model
-export function saveHtmlGenerationModel(model: string): void {
-  localStorage.setItem(STORAGE_KEYS.HTML_GENERATION_MODEL, model);
-}
 
-export function getHtmlGenerationModel(): string {
-  return localStorage.getItem(STORAGE_KEYS.HTML_GENERATION_MODEL) || 'x-ai/grok-3';
-}
-
-// Model Parameters operations
+// Model Parameters operations (unique per provider + model)
 const MODEL_PARAMS_KEY_PREFIX = 'model_params_';
 
-export function saveModelParameters(modelId: string, parameters: Record<string, any>): void {
+export function saveModelParameters(modelId: string, provider: string, parameters: Record<string, any>): void {
   try {
-    const key = MODEL_PARAMS_KEY_PREFIX + modelId;
-    localStorage.setItem(key, JSON.stringify({
+    const key = MODEL_PARAMS_KEY_PREFIX + provider + '_' + modelId;
+    const data = {
       parameters,
+      provider,
+      modelId,
       timestamp: Date.now(),
-    }));
+    };
+    console.log(`[localStorage] Saving parameters for ${key}:`, JSON.stringify(data, null, 2));
+    localStorage.setItem(key, JSON.stringify(data));
   } catch (error) {
     console.error('Failed to save model parameters:', error);
   }
 }
 
-export function getModelParameters(modelId: string): Record<string, any> | null {
+export function getModelParameters(modelId: string, provider: string): Record<string, any> | null {
   try {
-    const key = MODEL_PARAMS_KEY_PREFIX + modelId;
+    const key = MODEL_PARAMS_KEY_PREFIX + provider + '_' + modelId;
     const data = localStorage.getItem(key);
+    
+    console.log(`[localStorage] Loading parameters for ${key}, found:`, data ? 'yes' : 'no');
     
     if (!data) return null;
     
     const parsed = JSON.parse(data);
+    console.log(`[localStorage] Parsed parameters:`, JSON.stringify(parsed.parameters, null, 2));
     return parsed.parameters || null;
   } catch (error) {
     console.error('Failed to load model parameters:', error);
@@ -146,10 +145,10 @@ export function getModelParameters(modelId: string): Record<string, any> | null 
   }
 }
 
-export function clearModelParameters(modelId?: string): void {
+export function clearModelParameters(modelId?: string, provider?: string): void {
   try {
-    if (modelId) {
-      const key = MODEL_PARAMS_KEY_PREFIX + modelId;
+    if (modelId && provider) {
+      const key = MODEL_PARAMS_KEY_PREFIX + provider + '_' + modelId;
       localStorage.removeItem(key);
     } else {
       // Clear all model parameters
