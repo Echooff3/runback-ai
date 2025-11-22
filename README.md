@@ -259,3 +259,5 @@ export default defineConfig([
   },
 ])
 ```
+
+⚠️ **Disclaimer:** This is a purpose-built app for hobbyists. Please proceed only if you know what you are doing.
