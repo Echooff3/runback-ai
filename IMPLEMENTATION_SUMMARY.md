@@ -2,6 +2,22 @@
 
 ## Recent Updates
 
+### ✅ Phase 3 Prompt Management Completion (November 2025)
+Implemented full System Prompt and Slash Prompt management.
+
+**Key Features:**
+- 🗂️ System Prompts CRUD (create, edit, delete, usage counts, default protection)
+- ⚙️ Apply System Prompt in Chat (badge selector, removal button)
+- 💬 Slash Prompts CRUD with validation and dynamic variable extraction
+- 🔤 Slash Command Autocomplete (arrow navigation, Enter/Tab to apply, Esc to dismiss)
+- 🧩 Dynamic Templates: `{variable}` prompts & `<input>` free-text replacement
+- 🌱 Default Seeding via `defaults/prompts.ts` on first load
+- 🔒 Default Prompt Protection (cannot delete; badge displayed)
+
+**Pending:** Import/Export of prompts & full app data (planned Phase 4).
+
+**Primary Files:** `SystemPromptsScreen.tsx`, `SystemPromptModal.tsx`, `SlashPromptsScreen.tsx`, `SlashPromptModal.tsx`, `EnhancedChatInput.tsx`, `lib/defaults/prompts.ts`, `lib/storage/localStorage.ts`
+
 ### ✨ Helper Model & AI Polisher (November 2025)
 Implemented a "Helper Model" setting and an AI-powered "Polisher" for music generation prompts.
 
@@ -292,14 +308,14 @@ App
 ## Implementation Phases
 
 ### Phase 1: Foundation (2-3 weeks)
-- [ ] Vite + React/Vue + TypeScript setup
-- [ ] Tailwind CSS with dark mode configuration
-- [ ] Basic routing and navigation
-- [ ] Theme toggle (Light/Dark/System)
-- [ ] Settings screen with API key management
-- [ ] LocalStorage persistence layer
-- [ ] Mobile-responsive layout
-- [ ] GitHub Actions CI/CD
+- [x] Vite + React + TypeScript setup
+- [x] Tailwind CSS with dark mode configuration
+- [x] Basic routing and navigation
+- [x] Theme toggle (Light/Dark/System)
+- [x] Settings screen with API key management
+- [x] LocalStorage persistence layer
+- [x] Mobile-responsive layout
+- [ ] GitHub Actions CI/CD (workflow artifact finalization pending)
 
 ### Phase 2: Chat Core (2-3 weeks)
 - [x] Chat interface UI
@@ -319,12 +335,12 @@ App
 - [x] **Real-time status updates with logs** ⭐ NEW
 
 ### Phase 3: Prompt Management (2-3 weeks)
-- [ ] System prompts CRUD
-- [ ] Slash prompts CRUD
-- [ ] Default prompts seeding
-- [ ] Apply system prompt in chat
-- [ ] Slash command autocomplete
-- [ ] Import/Export functionality
+- [x] System prompts CRUD
+- [x] Slash prompts CRUD
+- [x] Default prompts seeding
+- [x] Apply system prompt in chat
+- [x] Slash command autocomplete
+- [ ] Import/Export functionality (planned)
 
 ### Phase 4: Polish & Optimization (1-2 weeks)
 - [ ] UI/UX refinements
