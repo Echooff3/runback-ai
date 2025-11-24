@@ -18,6 +18,15 @@ import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
 
+const CheckpointDivider = ({ checkpoint }: { checkpoint: SessionCheckpoint }) => (
+  <div className="w-full my-6 flex items-center justify-center">
+    <div className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200 px-6 py-2 rounded-full text-sm font-medium flex items-center gap-2 shadow-sm border border-indigo-100 dark:border-indigo-800">
+      <BookmarkIcon className="w-4 h-4" />
+      <span>Checkpoint Created • {new Date(checkpoint.timestamp).toLocaleTimeString()}</span>
+    </div>
+  </div>
+);
+
 export default function ChatScreen() {
   const { 
     currentSession, 
@@ -285,6 +294,24 @@ export default function ChatScreen() {
 
   const handleSendMessage = async (content: string, systemPromptContent?: string) => {
     if (!currentSession || !selectedModel) return;
+
+    // Handle manual checkpoint command
+    if (content.trim().toLowerCase() === '/checkpoint') {
+      if (selectedProvider === 'openrouter') {
+        try {
+          setLoading(true);
+          await createCheckpoint();
+        } catch (err) {
+          setError('Failed to create checkpoint');
+        } finally {
+          setLoading(false);
+        }
+        return;
+      } else {
+        setError('Checkpoints are currently only supported for OpenRouter');
+        return;
+      }
+    }
 
     clearError();
 
@@ -662,6 +689,8 @@ export default function ChatScreen() {
           if (message.role === 'user') {
             const hasResponses = message.responses && message.responses.length > 0;
             const currentResponse = message.responses?.[message.currentResponseIndex ?? 0];
+            const checkpoint = currentSession.checkpoints?.find(cp => cp.lastMessageId === message.id);
+
             return (
               <div key={message.id}>
                 <UserMessage
@@ -686,6 +715,7 @@ export default function ChatScreen() {
                     onToggleCollapse={() => updateAIResponseStatus(message.id, currentResponse.id, { isCollapsed: !currentResponse.isCollapsed })}
                   />
                 )}
+                {checkpoint && <CheckpointDivider checkpoint={checkpoint} />}
               </div>
             );
           }

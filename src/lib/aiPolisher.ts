@@ -11,7 +11,7 @@ export class AiPolisherTasks {
 
     const client = new OpenRouterClient(apiKey);
     
-    const systemPrompt = "Summarize the following conversation history into a concise context paragraph. This summary will be used to provide context for an LLM in future turns. Capture key decisions, user preferences, and the current state of the discussion. Be concise.";
+    const systemPrompt = "Summarize the following conversation history into a concise context paragraph. This summary will be used to provide context for an LLM in future turns. Capture key decisions, user preferences, and the current state of the discussion. Be concise. Only return the summary.";
 
     // Convert ChatMessage[] to a string format for the summarizer
     const conversationText = messages.map(msg => {
