@@ -223,7 +223,11 @@ export default function ChatScreen() {
     } else {
       // Use the latest checkpoint
       checkpoint = session.checkpoints[session.checkpoints.length - 1];
-      const cpIndex = session.messages.findIndex(m => m.id === checkpoint.lastMessageId);
+      // Guard against undefined checkpoint (TypeScript safety)
+      let cpIndex = -1;
+      if (checkpoint) {
+        cpIndex = session.messages.findIndex(m => m.id === checkpoint!.lastMessageId);
+      }
       if (cpIndex !== -1) {
         startIndex = cpIndex + 1;
       } else {
