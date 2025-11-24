@@ -309,7 +309,7 @@ App
 - [x] Re-run prompt functionality ⭐
 - [x] Response history navigation ⭐
 - [x] Loading states and error handling
-- [x] **Multi-tab chat sessions** ⭐
+- [x] **Multi-tab chat sessions** ⭐ NEW
 - [x] **Persistent session storage (IndexedDB)** ⭐
 - [x] **Starred sessions with delete protection** ⭐
 - [x] **Session history management** ⭐
@@ -540,6 +540,16 @@ docker run -p 8080:80 runback-ai
 - [ ] Documentation complete
 - [ ] GitHub Actions builds runback-ai.zip ⭐
 
+### Additional Implemented Features (added to checklist)
+- [x] Helper Model setting & AI Polisher (music prompt polisher) implemented (Settings + Polisher tasks)
+- [x] FAL queue-based async processing implemented (submit/status/result)
+- [x] Viewport-aware polling (IntersectionObserver; 10s interval) implemented
+- [x] Media asset rendering (image/video/audio) with native controls and download support implemented
+- [x] Real-time status badges & logs for queued requests implemented
+- [x] Enhanced Model Selector (full-screen modal, fuzzy search, dynamic fetching) implemented
+- [x] Provider-specific model parameter storage & UI (provider-scoped keys) implemented
+- [x] Session History management UI in Settings implemented (search, filter, reopen, delete protections)
+
 ---
 
 ## Quick Start Development
@@ -740,7 +750,7 @@ Database: runback_db (v1)
 
 **Managing History**:
 1. User goes to Settings → Chat History
-2. Can search for sessions by keyword
+2. Can search for sessions by title
 3. Can filter by starred, open, or closed
 4. Can star/unstar any session
 5. Can delete unstarred sessions (with confirmation)
@@ -751,7 +761,7 @@ Database: runback_db (v1)
 ## Recent Implementation: FAL Queue API Integration (November 2025)
 
 ### Overview
-Implemented FAL's queue-based API for asynchronous request processing with real-time status updates, viewport-aware polling, and media asset display. This enables support for long-running FAL models (image generation, video, audio) with a non-blocking user experience.
+Implemented FAL's queue-based API for asynchronous request processing with real-time status updates, viewport-aware polling, and media asset display. This enables support for long-running FAL models ([...]
 
 ### Features Implemented
 
@@ -1039,7 +1049,7 @@ interface MediaAsset {
 ## Recent Update: Provider-Specific Model Parameters (November 2025)
 
 ### Overview
-Updated HTML form generation and model parameter storage to be unique per **provider + model** combination, not just model ID. This allows different providers to have different parameter configurations for models with the same name.
+Updated HTML form generation and model parameter storage to be unique per **provider + model** combination, not just model ID. This allows different providers to have different parameter configuration[...]
 
 ### Changes Made
 
