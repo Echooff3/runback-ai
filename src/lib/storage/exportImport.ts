@@ -105,7 +105,20 @@ export function validateImportData(data: unknown): data is ExportData {
   for (const prompt of obj.systemPrompts) {
     if (!prompt || typeof prompt !== 'object') return false;
     const p = prompt as Record<string, unknown>;
+    // Required string fields
     if (typeof p.id !== 'string' || typeof p.name !== 'string' || typeof p.content !== 'string') {
+      return false;
+    }
+    // Required timestamp fields (should be strings)
+    if (typeof p.createdAt !== 'string' || typeof p.updatedAt !== 'string') {
+      return false;
+    }
+    // Required numeric field
+    if (typeof p.usageCount !== 'number') {
+      return false;
+    }
+    // Required boolean field
+    if (typeof p.isDefault !== 'boolean') {
       return false;
     }
   }
@@ -114,7 +127,24 @@ export function validateImportData(data: unknown): data is ExportData {
   for (const prompt of obj.slashPrompts) {
     if (!prompt || typeof prompt !== 'object') return false;
     const p = prompt as Record<string, unknown>;
+    // Required string fields
     if (typeof p.id !== 'string' || typeof p.command !== 'string' || typeof p.template !== 'string') {
+      return false;
+    }
+    // Required timestamp fields (should be strings)
+    if (typeof p.createdAt !== 'string' || typeof p.updatedAt !== 'string') {
+      return false;
+    }
+    // Required numeric field
+    if (typeof p.usageCount !== 'number') {
+      return false;
+    }
+    // Required boolean field
+    if (typeof p.isDefault !== 'boolean') {
+      return false;
+    }
+    // Variables must be an array if present
+    if (p.variables !== undefined && !Array.isArray(p.variables)) {
       return false;
     }
   }
@@ -264,7 +294,8 @@ export function readFileAsJSON(file: File): Promise<unknown> {
         const text = event.target?.result as string;
         const data = JSON.parse(text);
         resolve(data);
-      } catch {
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
         reject(new Error('Invalid JSON file'));
       }
     };

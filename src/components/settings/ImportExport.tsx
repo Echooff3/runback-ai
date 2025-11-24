@@ -6,6 +6,7 @@ import {
   importAppData,
   type ImportMode,
   type ImportResult,
+  type ExportData,
 } from '../../lib/storage/exportImport';
 
 export default function ImportExport() {
@@ -13,7 +14,7 @@ export default function ImportExport() {
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [pendingData, setPendingData] = useState<ExportData | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,7 +55,8 @@ export default function ImportExport() {
         return;
       }
 
-      setPendingFile(file);
+      // Store the validated data instead of the file
+      setPendingData(data);
       setShowImportModal(true);
     } catch (error) {
       setImportError(error instanceof Error ? error.message : 'Failed to read file');
@@ -67,24 +69,18 @@ export default function ImportExport() {
   };
 
   const handleImport = async (mode: ImportMode) => {
-    if (!pendingFile) return;
+    if (!pendingData) return;
 
     setIsImporting(true);
     setShowImportModal(false);
 
     try {
-      const data = await readFileAsJSON(pendingFile);
-      
-      if (!validateImportData(data)) {
-        setImportError('Invalid backup file format');
-        return;
-      }
-
-      const result = await importAppData(data, mode);
+      const result = await importAppData(pendingData, mode);
       setImportResult(result);
 
       if (result.success) {
-        // Reload page to apply changes
+        // Reload page to apply changes - required because Zustand stores
+        // and React contexts need to reinitialize with the new data
         setTimeout(() => {
           window.location.reload();
         }, 2000);
@@ -93,13 +89,13 @@ export default function ImportExport() {
       setImportError(error instanceof Error ? error.message : 'Failed to import data');
     } finally {
       setIsImporting(false);
-      setPendingFile(null);
+      setPendingData(null);
     }
   };
 
   const handleCancelImport = () => {
     setShowImportModal(false);
-    setPendingFile(null);
+    setPendingData(null);
   };
 
   return (
