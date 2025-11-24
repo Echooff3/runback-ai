@@ -4,6 +4,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import ThemeToggle from './ThemeToggle';
 import APIKeyCard from './APIKeyCard';
 import SessionHistory from './SessionHistory';
+import ImportExport from './ImportExport';
 import type { Provider } from '../../types';
 
 export default function SettingsScreen() {
@@ -102,6 +103,14 @@ export default function SettingsScreen() {
               className="w-full px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-gray-100"
             />
           </div>
+        </section>
+
+        {/* Divider */}
+        <div className="border-t border-gray-200 dark:border-gray-700"></div>
+
+        {/* Import/Export Section */}
+        <section>
+          <ImportExport />
         </section>
 
         {/* Divider */}

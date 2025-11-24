@@ -121,4 +121,11 @@ export const DEFAULT_SLASH_PROMPTS: Omit<SlashPrompt, 'id' | 'createdAt' | 'upda
     ],
     isDefault: true,
   },
+  {
+    command: '/checkpoint',
+    description: 'Create a conversation checkpoint (OpenRouter only)',
+    template: '/checkpoint',
+    variables: [],
+    isDefault: true,
+  },
 ];

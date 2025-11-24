@@ -130,6 +130,7 @@ export function createNewSession(provider: Provider, model?: string, systemPromp
     updatedAt: new Date().toISOString(),
     isStarred: false,
     isClosed: false,
+    checkpoints: [],
   };
 }
 
@@ -165,4 +166,28 @@ export async function getSessionCount(): Promise<number> {
 export async function clearAllSessions(): Promise<void> {
   const db = getDBInstance();
   await db.clearAllSessions();
+}
+
+/**
+ * Delete all non-starred sessions
+ */
+export async function deleteAllNonStarred(): Promise<{ success: boolean; deletedCount: number; error?: string }> {
+  const db = getDBInstance();
+  const allSessions = await db.loadAllSessions();
+  
+  const nonStarredSessions = allSessions.filter(session => !session.isStarred);
+  
+  try {
+    for (const session of nonStarredSessions) {
+      await db.deleteSession(session.id);
+    }
+    
+    return { success: true, deletedCount: nonStarredSessions.length };
+  } catch (error) {
+    return { 
+      success: false, 
+      deletedCount: 0,
+      error: error instanceof Error ? error.message : 'Failed to delete sessions'
+    };
+  }
 }

@@ -90,7 +90,22 @@ export class OpenRouterClient {
       return false;
     }
   }
+
+  async getModels(): Promise<{ id: string; context_length: number }[]> {
+    try {
+      const response = await axios.get('https://openrouter.ai/api/v1/models');
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to fetch OpenRouter models:', error);
+      return [];
+    }
+  }
 }
+
+// Helper to estimate token count (rough approximation: 4 chars per token)
+export const estimateTokenCount = (text: string): number => {
+  return Math.ceil(text.length / 4);
+};
 
 // Available models for OpenRouter
 export const OPENROUTER_MODELS = [

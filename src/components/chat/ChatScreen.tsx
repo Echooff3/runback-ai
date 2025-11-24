@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { Cog6ToothIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { getAIClient } from '../../lib/api';
+import { getAIClient, estimateTokenCount } from '../../lib/api';
 import { getLastProvider, getLastModel, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
-import type { Provider, ChatMessage, ModelParameters, AIResponse } from '../../types';
+import type { Provider, ChatMessage, ModelParameters, AIResponse, ChatSession, SessionCheckpoint } from '../../types';
 import SessionTabs from './SessionTabs';
 import ProviderSelector from './ProviderSelector';
 import ModelSelector from './ModelSelector';
@@ -18,6 +18,15 @@ import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
 
+const CheckpointDivider = ({ checkpoint }: { checkpoint: SessionCheckpoint }) => (
+  <div className="w-full my-6 flex items-center justify-center">
+    <div className="bg-indigo-50 dark:bg-indigo-900/20 text-indigo-800 dark:text-indigo-200 px-6 py-2 rounded-full text-sm font-medium flex items-center gap-2 shadow-sm border border-indigo-100 dark:border-indigo-800">
+      <BookmarkIcon className="w-4 h-4" />
+      <span>Checkpoint Created • {new Date(checkpoint.timestamp).toLocaleTimeString()}</span>
+    </div>
+  </div>
+);
+
 export default function ChatScreen() {
   const { 
     currentSession, 
@@ -25,6 +34,7 @@ export default function ChatScreen() {
     error,
     loadSessions,
     updateSessionSettings,
+    createCheckpoint,
     addUserMessage,
     addAIResponse,
     updateAIResponseStatus,
@@ -46,8 +56,11 @@ export default function ChatScreen() {
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const [musicDraft, setMusicDraft] = useState<{ style: string; lyrics: string } | null>(null);
   const [fluxDraft, setFluxDraft] = useState<string>('');
+  const [modelContextLength, setModelContextLength] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visibilityMapRef = useRef<Map<string, boolean>>(new Map());
+  const isRestoringFromSessionRef = useRef(false);
+  const lastSessionIdRef = useRef<string | null>(null);
 
   // Debug logging for parameter changes
   useEffect(() => {
@@ -59,6 +72,28 @@ export default function ChatScreen() {
     console.log('[ChatScreen] handleParametersChange called with:', JSON.stringify(parameters, null, 2));
     setModelParameters(parameters);
   };
+
+  // Fetch model context length
+  useEffect(() => {
+    const fetchModelInfo = async () => {
+      if (selectedProvider === 'openrouter') {
+        const aiClient = getAIClient();
+        const models = await aiClient.getOpenRouterModels();
+        const modelInfo = models.find(m => m.id === selectedModel);
+        if (modelInfo) {
+          setModelContextLength(modelInfo.context_length);
+          console.log(`[ChatScreen] Model ${selectedModel} context length: ${modelInfo.context_length}`);
+        }
+      } else {
+        // For other providers, we might not have this info dynamically yet
+        setModelContextLength(0);
+      }
+    };
+    
+    if (selectedModel) {
+      fetchModelInfo();
+    }
+  }, [selectedModel, selectedProvider]);
   
   // Cleanup polling on unmount
   useEffect(() => {
@@ -93,7 +128,11 @@ export default function ChatScreen() {
 
   // Restore session's provider and model when currentSession changes (tab switch)
   useEffect(() => {
-    if (currentSession) {
+    if (currentSession && currentSession.id !== lastSessionIdRef.current) {
+      // Mark that we're restoring from a session switch
+      isRestoringFromSessionRef.current = true;
+      lastSessionIdRef.current = currentSession.id;
+      
       // Update UI to match the session's settings
       if (currentSession.provider) {
         setSelectedProvider(currentSession.provider);
@@ -101,6 +140,11 @@ export default function ChatScreen() {
       if (currentSession.model) {
         setSelectedModel(currentSession.model);
       }
+      
+      // Reset the flag after state updates have propagated
+      setTimeout(() => {
+        isRestoringFromSessionRef.current = false;
+      }, 0);
     }
   }, [currentSession?.id]); // Only trigger when session ID changes (tab switch)
 
@@ -122,15 +166,15 @@ export default function ChatScreen() {
     }
   }, [selectedProvider]);
 
-  // Save provider/model changes to local storage
+  // Save provider/model changes to local storage (but not during restoration)
   useEffect(() => {
-    if (selectedProvider) {
+    if (selectedProvider && !isRestoringFromSessionRef.current) {
       saveLastProvider(selectedProvider);
     }
   }, [selectedProvider]);
 
   useEffect(() => {
-    if (selectedModel) {
+    if (selectedModel && !isRestoringFromSessionRef.current) {
       saveLastModel(selectedModel);
     }
   }, [selectedModel]);
@@ -151,6 +195,11 @@ export default function ChatScreen() {
 
   // Save provider/model changes to the current session
   useEffect(() => {
+    // Skip if we're restoring from a session switch to avoid circular updates
+    if (isRestoringFromSessionRef.current) {
+      return;
+    }
+    
     if (currentSession && selectedProvider && selectedModel) {
       // Only update if they're different from the session's current settings
       if (currentSession.provider !== selectedProvider || currentSession.model !== selectedModel) {
@@ -164,10 +213,121 @@ export default function ChatScreen() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentSession?.messages]);
 
+  const getConversationContext = (session: ChatSession, targetMessageId?: string) => {
+    if (!session.checkpoints || session.checkpoints.length === 0) {
+      // No checkpoints, return full history (or up to target)
+      if (!targetMessageId) {
+        return session.messages.map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.role === 'user' ? msg.content : (msg.responses?.[msg.currentResponseIndex || 0]?.content || '')
+        }));
+      } else {
+        const targetIndex = session.messages.findIndex(m => m.id === targetMessageId);
+        if (targetIndex === -1) return [];
+        return session.messages.slice(0, targetIndex).map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.role === 'user' ? msg.content : (msg.responses?.[msg.currentResponseIndex || 0]?.content || '')
+        }));
+      }
+    }
+
+    // Find the relevant checkpoint
+    let checkpoint: SessionCheckpoint | undefined;
+    let startIndex = 0;
+
+    if (targetMessageId) {
+      // Find the latest checkpoint that happened BEFORE the target message
+      const targetIndex = session.messages.findIndex(m => m.id === targetMessageId);
+      if (targetIndex === -1) return []; // Should not happen
+
+      // Iterate backwards from checkpoints to find one that is before target
+      // We need to know the index of the checkpoint's lastMessageId
+      for (let i = session.checkpoints.length - 1; i >= 0; i--) {
+        const cp = session.checkpoints[i];
+        const cpIndex = session.messages.findIndex(m => m.id === cp.lastMessageId);
+        
+        if (cpIndex !== -1 && cpIndex < targetIndex) {
+          checkpoint = cp;
+          startIndex = cpIndex + 1;
+          break;
+        }
+      }
+    } else {
+      // Use the latest checkpoint
+      checkpoint = session.checkpoints[session.checkpoints.length - 1];
+      // Guard against undefined checkpoint (TypeScript safety)
+      let cpIndex = -1;
+      if (checkpoint) {
+        cpIndex = session.messages.findIndex(m => m.id === checkpoint!.lastMessageId);
+      }
+      if (cpIndex !== -1) {
+        startIndex = cpIndex + 1;
+      } else {
+        // Checkpoint message not found (maybe deleted?), fallback to full history
+        checkpoint = undefined;
+      }
+    }
+
+    const contextMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
+
+    if (checkpoint) {
+      contextMessages.push({
+        role: 'system',
+        content: `[Previous Conversation Summary]: ${checkpoint.summary}`
+      });
+    }
+
+    // Add messages since checkpoint
+    const messagesToAdd = targetMessageId 
+      ? session.messages.slice(startIndex, session.messages.findIndex(m => m.id === targetMessageId))
+      : session.messages.slice(startIndex);
+
+    messagesToAdd.forEach(msg => {
+      contextMessages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.role === 'user' ? msg.content : (msg.responses?.[msg.currentResponseIndex || 0]?.content || '')
+      });
+    });
+
+    return contextMessages;
+  };
+
   const handleSendMessage = async (content: string, systemPromptContent?: string) => {
     if (!currentSession || !selectedModel) return;
 
+    // Handle manual checkpoint command
+    if (content.trim().toLowerCase() === '/checkpoint') {
+      if (selectedProvider === 'openrouter') {
+        try {
+          setLoading(true);
+          await createCheckpoint();
+        } catch (err) {
+          setError('Failed to create checkpoint');
+        } finally {
+          setLoading(false);
+        }
+        return;
+      } else {
+        setError('Checkpoints are currently only supported for OpenRouter');
+        return;
+      }
+    }
+
     clearError();
+
+    // Check token usage for auto-checkpoint (OpenRouter only for now)
+    if (selectedProvider === 'openrouter' && modelContextLength > 0) {
+      // Calculate current context tokens
+      const contextMessages = getConversationContext(currentSession);
+      const contextText = contextMessages.map(m => m.content).join(' ');
+      const currentTokens = estimateTokenCount(contextText + content + (systemPromptContent || ''));
+      
+      if (currentTokens > modelContextLength * 0.6) {
+        console.log(`[ChatScreen] Token count ${currentTokens} exceeds 60% of ${modelContextLength}. Creating checkpoint...`);
+        await createCheckpoint();
+      }
+    }
+
     const userMessage = addUserMessage(content);
     setLoading(true);
 
@@ -177,11 +337,24 @@ export default function ChatScreen() {
         await handleFalQueueSubmission(userMessage, content);
       } else {
         const aiClient = getAIClient();
+        
+        // For OpenRouter, use full context with checkpoints
+        let conversationHistory: { role: 'user' | 'assistant' | 'system'; content: string }[] | undefined;
+        if (selectedProvider === 'openrouter') {
+          // Get the latest session state which includes the new message and potentially the new checkpoint
+          const latestSession = useChatStore.getState().currentSession;
+          if (latestSession) {
+            // Pass userMessage.id to exclude the current message from history (it's added separately in sendMessage)
+            conversationHistory = getConversationContext(latestSession, userMessage.id);
+          }
+        }
+
         const response = await aiClient.sendMessage({
           provider: selectedProvider,
           model: selectedModel,
           userMessage: content,
           systemPrompt: systemPromptContent,
+          conversationHistory,
         });
 
         // Update generation number based on existing responses
@@ -312,10 +485,18 @@ export default function ChatScreen() {
         await handleFalQueueSubmission(message, message.content);
       } else {
         const aiClient = getAIClient();
+        
+        // For OpenRouter, use full context with checkpoints up to this message
+        let conversationHistory: { role: 'user' | 'assistant' | 'system'; content: string }[] | undefined;
+        if (selectedProvider === 'openrouter') {
+          conversationHistory = getConversationContext(currentSession, message.id);
+        }
+
         const response = await aiClient.sendMessage({
           provider: selectedProvider,
           model: selectedModel,
           userMessage: message.content,
+          conversationHistory,
         });
 
         // Update generation number
@@ -444,13 +625,25 @@ export default function ChatScreen() {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Chat</h1>
-          <Link
-            to="/settings"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            title="Settings"
-          >
-            <Cog6ToothIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </Link>
+          <div className="flex items-center gap-2">
+            {selectedProvider === 'openrouter' && currentSession && currentSession.messages.length > 0 && (
+              <button
+                onClick={createCheckpoint}
+                disabled={isLoading}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-400"
+                title="Create Checkpoint (Summarize History)"
+              >
+                <BookmarkIcon className="w-5 h-5" />
+              </button>
+            )}
+            <Link
+              to="/settings"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              title="Settings"
+            >
+              <Cog6ToothIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </Link>
+          </div>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
@@ -496,6 +689,8 @@ export default function ChatScreen() {
           if (message.role === 'user') {
             const hasResponses = message.responses && message.responses.length > 0;
             const currentResponse = message.responses?.[message.currentResponseIndex ?? 0];
+            const checkpoint = currentSession.checkpoints?.find(cp => cp.lastMessageId === message.id);
+
             return (
               <div key={message.id}>
                 <UserMessage
@@ -520,6 +715,7 @@ export default function ChatScreen() {
                     onToggleCollapse={() => updateAIResponseStatus(message.id, currentResponse.id, { isCollapsed: !currentResponse.isCollapsed })}
                   />
                 )}
+                {checkpoint && <CheckpointDivider checkpoint={checkpoint} />}
               </div>
             );
           }

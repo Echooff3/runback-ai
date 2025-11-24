@@ -5,6 +5,7 @@ import {
   MagnifyingGlassIcon,
   StarIcon as StarOutlineIcon,
   ArrowPathIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolidIcon } from '@heroicons/react/24/solid';
 import { useChatStore } from '../../stores/chatStore';
@@ -14,7 +15,8 @@ export default function SessionHistory() {
   const { 
     sessions,
     loadAllSessions, 
-    deleteSession, 
+    deleteSession,
+    deleteAllNonStarred,
     toggleStarSession,
     reopenSession,
   } = useChatStore();
@@ -50,6 +52,30 @@ export default function SessionHistory() {
 
   const handleReopen = async (sessionId: string) => {
     await reopenSession(sessionId);
+  };
+
+  const handleDeleteAll = async () => {
+    const nonStarredCount = sessions.filter(s => !s.isStarred).length;
+    
+    if (nonStarredCount === 0) {
+      alert('No non-starred conversations to delete.');
+      return;
+    }
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete all ${nonStarredCount} non-starred conversation${nonStarredCount !== 1 ? 's' : ''}? \n\nStarred conversations will be kept. This action cannot be undone.`
+    );
+    
+    if (confirmed) {
+      const result = await deleteAllNonStarred();
+      if (!result.success) {
+        alert(result.error || 'Failed to delete conversations');
+      } else {
+        // Reload all sessions to update the list
+        await loadAllSessions();
+        alert(`Successfully deleted ${result.deletedCount} conversation${result.deletedCount !== 1 ? 's' : ''}.`);
+      }
+    }
   };
 
   // Filter and search sessions
@@ -89,13 +115,23 @@ export default function SessionHistory() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Chat History</h3>
-        <button
-          onClick={() => loadAllSessions()}
-          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          title="Refresh"
-        >
-          <ArrowPathIcon className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDeleteAll}
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-lg transition-colors"
+            title="Delete all non-starred conversations"
+          >
+            <ExclamationTriangleIcon className="w-4 h-4" />
+            <span>Delete All</span>
+          </button>
+          <button
+            onClick={() => loadAllSessions()}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            title="Refresh"
+          >
+            <ArrowPathIcon className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       <p className="text-sm text-gray-600 dark:text-gray-400">

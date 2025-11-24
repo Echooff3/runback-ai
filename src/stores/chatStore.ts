@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { ChatMessage, ChatSession, AIResponse, Provider } from '../types';
+import type { ChatMessage, ChatSession, AIResponse, Provider, SessionCheckpoint } from '../types';
+import { AiPolisherTasks } from '../lib/aiPolisher';
+import { useSettingsStore } from './settingsStore';
 import { 
   saveSession as saveSessionToDB, 
   loadOpenSessions,
   loadAllSessions as loadAllSessionsFromDB,
   deleteSession as deleteSessionFromDB,
+  deleteAllNonStarred as deleteAllNonStarredFromDB,
   toggleStarSession as toggleStarInDB,
   updateSessionTitle as updateTitleInDB,
   closeSession as closeSessionInDB,
@@ -30,9 +33,11 @@ interface ChatState {
   closeSessionTab: (sessionId: string) => Promise<void>;
   reopenSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+  deleteAllNonStarred: () => Promise<{ success: boolean; deletedCount: number; error?: string }>;
   toggleStarSession: (sessionId: string) => Promise<void>;
   updateSessionTitle: (sessionId: string, title: string) => Promise<void>;
   updateSessionSettings: (sessionId: string, provider: Provider, model: string) => Promise<void>;
+  createCheckpoint: () => Promise<void>;
   
   // Message actions
   addUserMessage: (content: string) => ChatMessage;
@@ -211,6 +216,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
     return result;
   },
 
+  deleteAllNonStarred: async () => {
+    const result = await deleteAllNonStarredFromDB();
+    
+    if (result.success) {
+      const state = get();
+      // Keep only starred sessions
+      const updatedSessions = state.sessions.filter(s => s.isStarred);
+      
+      // If active session was deleted, switch to first remaining or null
+      let newActiveId = state.activeSessionId;
+      let newCurrentSession = state.currentSession;
+      
+      const activeSessionStillExists = updatedSessions.some(s => s.id === state.activeSessionId);
+      if (!activeSessionStillExists) {
+        if (updatedSessions.length > 0) {
+          newActiveId = updatedSessions[0].id;
+          newCurrentSession = updatedSessions[0];
+        } else {
+          newActiveId = null;
+          newCurrentSession = null;
+        }
+      }
+      
+      set({ 
+        sessions: updatedSessions,
+        activeSessionId: newActiveId,
+        currentSession: newCurrentSession
+      });
+    }
+    
+    return result;
+  },
+
   toggleStarSession: async (sessionId: string) => {
     const newStarredStatus = await toggleStarInDB(sessionId);
     
@@ -270,6 +308,61 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ? updatedSession
         : state.currentSession
     });
+  },
+
+  createCheckpoint: async () => {
+    const state = get();
+    if (!state.currentSession) return;
+
+    const { getAPIKey, helperModel } = useSettingsStore.getState();
+    const apiKey = getAPIKey('openrouter');
+
+    if (!apiKey) {
+      set({ error: 'OpenRouter API key required for checkpoints' });
+      return;
+    }
+
+    set({ isLoading: true });
+
+    try {
+      const summary = await AiPolisherTasks.summarizeConversation(
+        state.currentSession.messages,
+        apiKey,
+        helperModel
+      );
+
+      const lastMessage = state.currentSession.messages[state.currentSession.messages.length - 1];
+      
+      const checkpoint: SessionCheckpoint = {
+        id: uuidv4(),
+        summary,
+        lastMessageId: lastMessage?.id || '',
+        timestamp: new Date().toISOString(),
+      };
+
+      const updatedSession = {
+        ...state.currentSession,
+        checkpoints: [...(state.currentSession.checkpoints || []), checkpoint],
+        updatedAt: new Date().toISOString(),
+      };
+
+      set({ currentSession: updatedSession });
+      
+      // Update sessions array
+      const updatedSessions = state.sessions.map(s => 
+        s.id === updatedSession.id ? updatedSession : s
+      );
+      set({ sessions: updatedSessions });
+      
+      // Save to DB
+      await saveSessionToDB(updatedSession);
+      
+    } catch (error) {
+      console.error('Failed to create checkpoint:', error);
+      set({ error: 'Failed to create checkpoint' });
+    } finally {
+      set({ isLoading: false });
+    }
   },
   
   addUserMessage: (content: string) => {

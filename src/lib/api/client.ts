@@ -10,7 +10,7 @@ export interface SendMessageOptions {
   model: string;
   userMessage: string;
   systemPrompt?: string;
-  conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
+  conversationHistory?: { role: 'user' | 'assistant' | 'system'; content: string }[];
   additionalParameters?: Record<string, any>;
 }
 
@@ -99,7 +99,7 @@ export class AIClient {
     model: string,
     userMessage: string,
     systemPrompt?: string,
-    conversationHistory?: { role: 'user' | 'assistant'; content: string }[]
+    conversationHistory?: { role: 'user' | 'assistant' | 'system'; content: string }[]
   ): Promise<{ content: string; tokenCount?: number; responseTime: number }> {
     if (!this.openRouterClient) {
       throw new Error('OpenRouter client not initialized');
@@ -151,6 +151,24 @@ export class AIClient {
   // Reinitialize clients when API keys change
   refreshClients() {
     this.initializeClients();
+  }
+
+  async getOpenRouterModels(): Promise<{ id: string; context_length: number }[]> {
+    if (!this.openRouterClient) {
+      // Try to initialize if not already done (e.g. if key was just added)
+      const openrouterConfig = getAPIConfig('openrouter');
+      if (openrouterConfig?.apiKey) {
+        this.openRouterClient = new OpenRouterClient(
+          openrouterConfig.apiKey,
+          openrouterConfig.endpoint
+        );
+      }
+    }
+    
+    if (this.openRouterClient) {
+      return await this.openRouterClient.getModels();
+    }
+    return [];
   }
 }
 
