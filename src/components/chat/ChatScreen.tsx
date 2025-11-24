@@ -13,7 +13,7 @@ import ProviderSelector from './ProviderSelector';
 import ModelSelector from './ModelSelector';
 import UserMessage from './UserMessage';
 import AIMessage from './AIMessage';
-import ChatInput from './ChatInput';
+import EnhancedChatInput from './EnhancedChatInput';
 import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
@@ -164,7 +164,7 @@ export default function ChatScreen() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentSession?.messages]);
 
-  const handleSendMessage = async (content: string) => {
+  const handleSendMessage = async (content: string, systemPromptContent?: string) => {
     if (!currentSession || !selectedModel) return;
 
     clearError();
@@ -181,6 +181,7 @@ export default function ChatScreen() {
           provider: selectedProvider,
           model: selectedModel,
           userMessage: content,
+          systemPrompt: systemPromptContent,
         });
 
         // Update generation number based on existing responses
@@ -564,10 +565,10 @@ export default function ChatScreen() {
           initialPrompt={fluxDraft}
         />
       ) : (
-        <ChatInput
+        <EnhancedChatInput
           onSend={handleSendMessage}
           disabled={isLoading || !selectedModel}
-          placeholder={selectedModel ? 'Type your message...' : 'Select a model to start chatting'}
+          placeholder={selectedModel ? 'Type your message or / for commands...' : 'Select a model to start chatting'}
         />
       )}
     </div>

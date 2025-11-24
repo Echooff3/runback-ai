@@ -1,5 +1,7 @@
 import { STORAGE_KEYS, CURRENT_STORAGE_VERSION } from './constants';
 import type { Theme, APIConfig, SystemPrompt, SlashPrompt } from '../../types';
+import { DEFAULT_SYSTEM_PROMPTS, DEFAULT_SLASH_PROMPTS } from '../defaults/prompts';
+import { v4 as uuidv4 } from 'uuid';
 
 // Theme operations
 export function saveTheme(theme: Theme): void {
@@ -47,7 +49,22 @@ export function saveSystemPrompt(prompt: SystemPrompt): void {
 
 export function getSystemPrompts(): SystemPrompt[] {
   const data = localStorage.getItem(STORAGE_KEYS.SYSTEM_PROMPTS);
-  return data ? JSON.parse(data) : [];
+  if (data) {
+    return JSON.parse(data);
+  }
+  
+  // Initialize with default prompts if empty
+  const now = new Date().toISOString();
+  const defaultPrompts: SystemPrompt[] = DEFAULT_SYSTEM_PROMPTS.map(prompt => ({
+    ...prompt,
+    id: uuidv4(),
+    createdAt: now,
+    updatedAt: now,
+    usageCount: 0,
+  }));
+  
+  localStorage.setItem(STORAGE_KEYS.SYSTEM_PROMPTS, JSON.stringify(defaultPrompts));
+  return defaultPrompts;
 }
 
 export function deleteSystemPrompt(id: string): void {
@@ -69,7 +86,22 @@ export function saveSlashPrompt(prompt: SlashPrompt): void {
 
 export function getSlashPrompts(): SlashPrompt[] {
   const data = localStorage.getItem(STORAGE_KEYS.SLASH_PROMPTS);
-  return data ? JSON.parse(data) : [];
+  if (data) {
+    return JSON.parse(data);
+  }
+  
+  // Initialize with default prompts if empty
+  const now = new Date().toISOString();
+  const defaultPrompts: SlashPrompt[] = DEFAULT_SLASH_PROMPTS.map(prompt => ({
+    ...prompt,
+    id: uuidv4(),
+    createdAt: now,
+    updatedAt: now,
+    usageCount: 0,
+  }));
+  
+  localStorage.setItem(STORAGE_KEYS.SLASH_PROMPTS, JSON.stringify(defaultPrompts));
+  return defaultPrompts;
 }
 
 export function deleteSlashPrompt(id: string): void {
