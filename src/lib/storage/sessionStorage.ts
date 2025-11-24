@@ -130,6 +130,7 @@ export function createNewSession(provider: Provider, model?: string, systemPromp
     updatedAt: new Date().toISOString(),
     isStarred: false,
     isClosed: false,
+    checkpoints: [],
   };
 }
 

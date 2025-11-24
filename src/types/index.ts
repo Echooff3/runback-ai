@@ -109,4 +109,12 @@ export interface ChatSession {
   updatedAt: string;
   isStarred: boolean;
   isClosed: boolean;
+  checkpoints?: SessionCheckpoint[];
+}
+
+export interface SessionCheckpoint {
+  id: string;
+  summary: string;
+  lastMessageId: string;
+  timestamp: string;
 }

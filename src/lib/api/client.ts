@@ -10,7 +10,7 @@ export interface SendMessageOptions {
   model: string;
   userMessage: string;
   systemPrompt?: string;
-  conversationHistory?: { role: 'user' | 'assistant'; content: string }[];
+  conversationHistory?: { role: 'user' | 'assistant' | 'system'; content: string }[];
   additionalParameters?: Record<string, any>;
 }
 
@@ -99,7 +99,7 @@ export class AIClient {
     model: string,
     userMessage: string,
     systemPrompt?: string,
-    conversationHistory?: { role: 'user' | 'assistant'; content: string }[]
+    conversationHistory?: { role: 'user' | 'assistant' | 'system'; content: string }[]
   ): Promise<{ content: string; tokenCount?: number; responseTime: number }> {
     if (!this.openRouterClient) {
       throw new Error('OpenRouter client not initialized');

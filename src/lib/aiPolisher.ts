@@ -1,6 +1,45 @@
 import { OpenRouterClient } from './api/openrouter';
+import type { ChatMessage } from '../types';
 
 export class AiPolisherTasks {
+  static async summarizeConversation(
+    messages: ChatMessage[],
+    apiKey: string,
+    model: string
+  ): Promise<string> {
+    if (messages.length === 0) return '';
+
+    const client = new OpenRouterClient(apiKey);
+    
+    const systemPrompt = "Summarize the following conversation history into a concise context paragraph. This summary will be used to provide context for an LLM in future turns. Capture key decisions, user preferences, and the current state of the discussion. Be concise.";
+
+    // Convert ChatMessage[] to a string format for the summarizer
+    const conversationText = messages.map(msg => {
+      const role = msg.role.toUpperCase();
+      let content = msg.content;
+      
+      // If it's a user message with responses, we might want to include the selected response
+      if (msg.role === 'user' && msg.responses && msg.responses.length > 0) {
+        const response = msg.responses[msg.currentResponseIndex || 0];
+        return `${role}: ${content}\nASSISTANT: ${response.content}`;
+      }
+      
+      return `${role}: ${content}`;
+    }).join('\n\n');
+
+    try {
+      const response = await client.sendMessage(model, [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: conversationText }
+      ]);
+
+      return response.content.trim();
+    } catch (error) {
+      console.error('Failed to summarize conversation:', error);
+      throw error;
+    }
+  }
+
   static async polishMusicStyle(
     originalStyle: string,
     apiKey: string,

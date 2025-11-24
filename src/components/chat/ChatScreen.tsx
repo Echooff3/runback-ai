@@ -1,13 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { Cog6ToothIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient } from '../../lib/api';
 import { getLastProvider, getLastModel, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
-import type { Provider, ChatMessage, ModelParameters, AIResponse } from '../../types';
+import type { Provider, ChatMessage, ModelParameters, AIResponse, ChatSession, SessionCheckpoint } from '../../types';
 import SessionTabs from './SessionTabs';
 import ProviderSelector from './ProviderSelector';
 import ModelSelector from './ModelSelector';
@@ -25,6 +25,7 @@ export default function ChatScreen() {
     error,
     loadSessions,
     updateSessionSettings,
+    createCheckpoint,
     addUserMessage,
     addAIResponse,
     updateAIResponseStatus,
@@ -180,6 +181,81 @@ export default function ChatScreen() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentSession?.messages]);
 
+  const getConversationContext = (session: ChatSession, targetMessageId?: string) => {
+    if (!session.checkpoints || session.checkpoints.length === 0) {
+      // No checkpoints, return full history (or up to target)
+      if (!targetMessageId) {
+        return session.messages.map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.role === 'user' ? msg.content : (msg.responses?.[msg.currentResponseIndex || 0]?.content || '')
+        }));
+      } else {
+        const targetIndex = session.messages.findIndex(m => m.id === targetMessageId);
+        if (targetIndex === -1) return [];
+        return session.messages.slice(0, targetIndex).map(msg => ({
+          role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+          content: msg.role === 'user' ? msg.content : (msg.responses?.[msg.currentResponseIndex || 0]?.content || '')
+        }));
+      }
+    }
+
+    // Find the relevant checkpoint
+    let checkpoint: SessionCheckpoint | undefined;
+    let startIndex = 0;
+
+    if (targetMessageId) {
+      // Find the latest checkpoint that happened BEFORE the target message
+      const targetIndex = session.messages.findIndex(m => m.id === targetMessageId);
+      if (targetIndex === -1) return []; // Should not happen
+
+      // Iterate backwards from checkpoints to find one that is before target
+      // We need to know the index of the checkpoint's lastMessageId
+      for (let i = session.checkpoints.length - 1; i >= 0; i--) {
+        const cp = session.checkpoints[i];
+        const cpIndex = session.messages.findIndex(m => m.id === cp.lastMessageId);
+        
+        if (cpIndex !== -1 && cpIndex < targetIndex) {
+          checkpoint = cp;
+          startIndex = cpIndex + 1;
+          break;
+        }
+      }
+    } else {
+      // Use the latest checkpoint
+      checkpoint = session.checkpoints[session.checkpoints.length - 1];
+      const cpIndex = session.messages.findIndex(m => m.id === checkpoint.lastMessageId);
+      if (cpIndex !== -1) {
+        startIndex = cpIndex + 1;
+      } else {
+        // Checkpoint message not found (maybe deleted?), fallback to full history
+        checkpoint = undefined;
+      }
+    }
+
+    const contextMessages: { role: 'user' | 'assistant' | 'system'; content: string }[] = [];
+
+    if (checkpoint) {
+      contextMessages.push({
+        role: 'system',
+        content: `[Previous Conversation Summary]: ${checkpoint.summary}`
+      });
+    }
+
+    // Add messages since checkpoint
+    const messagesToAdd = targetMessageId 
+      ? session.messages.slice(startIndex, session.messages.findIndex(m => m.id === targetMessageId))
+      : session.messages.slice(startIndex);
+
+    messagesToAdd.forEach(msg => {
+      contextMessages.push({
+        role: msg.role === 'user' ? 'user' : 'assistant',
+        content: msg.role === 'user' ? msg.content : (msg.responses?.[msg.currentResponseIndex || 0]?.content || '')
+      });
+    });
+
+    return contextMessages;
+  };
+
   const handleSendMessage = async (content: string, systemPromptContent?: string) => {
     if (!currentSession || !selectedModel) return;
 
@@ -193,11 +269,19 @@ export default function ChatScreen() {
         await handleFalQueueSubmission(userMessage, content);
       } else {
         const aiClient = getAIClient();
+        
+        // For OpenRouter, use full context with checkpoints
+        let conversationHistory: { role: 'user' | 'assistant' | 'system'; content: string }[] | undefined;
+        if (selectedProvider === 'openrouter') {
+          conversationHistory = getConversationContext(currentSession);
+        }
+
         const response = await aiClient.sendMessage({
           provider: selectedProvider,
           model: selectedModel,
           userMessage: content,
           systemPrompt: systemPromptContent,
+          conversationHistory,
         });
 
         // Update generation number based on existing responses
@@ -328,10 +412,18 @@ export default function ChatScreen() {
         await handleFalQueueSubmission(message, message.content);
       } else {
         const aiClient = getAIClient();
+        
+        // For OpenRouter, use full context with checkpoints up to this message
+        let conversationHistory: { role: 'user' | 'assistant' | 'system'; content: string }[] | undefined;
+        if (selectedProvider === 'openrouter') {
+          conversationHistory = getConversationContext(currentSession, message.id);
+        }
+
         const response = await aiClient.sendMessage({
           provider: selectedProvider,
           model: selectedModel,
           userMessage: message.content,
+          conversationHistory,
         });
 
         // Update generation number
@@ -460,13 +552,25 @@ export default function ChatScreen() {
       <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-4">
         <div className="flex items-center justify-between mb-3">
           <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Chat</h1>
-          <Link
-            to="/settings"
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            title="Settings"
-          >
-            <Cog6ToothIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </Link>
+          <div className="flex items-center gap-2">
+            {selectedProvider === 'openrouter' && currentSession && currentSession.messages.length > 0 && (
+              <button
+                onClick={createCheckpoint}
+                disabled={isLoading}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-400"
+                title="Create Checkpoint (Summarize History)"
+              >
+                <BookmarkIcon className="w-5 h-5" />
+              </button>
+            )}
+            <Link
+              to="/settings"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              title="Settings"
+            >
+              <Cog6ToothIcon className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+            </Link>
+          </div>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
