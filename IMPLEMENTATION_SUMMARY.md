@@ -2,6 +2,35 @@
 
 ## Recent Updates
 
+### ✅ Phase 4 Import/Export (November 2025)
+Implemented Import/Export functionality for backing up and restoring all app data except API keys.
+
+**Key Features:**
+- 📤 **Export Data**: Download all app data as JSON file (excludes API keys for security)
+- 📥 **Import Data**: Restore from backup with two modes: merge or replace
+- 🔒 **Security**: API keys are never included in exports
+- ✅ **Validation**: Comprehensive file format validation before import
+- 🔄 **Merge Mode**: Add new items from backup, keeping existing items with same ID
+- 🗑️ **Replace Mode**: Clear all existing data before importing
+
+**Exported Data:**
+- Theme preference
+- Helper model setting
+- System prompts (with all metadata)
+- Slash prompts (with all metadata)
+- Chat sessions (from IndexedDB)
+- Last provider/model settings
+- Active prompt ID
+
+**NOT Exported (Security):**
+- OpenRouter API key
+- Replicate API key
+- Fal.ai API key
+
+**Primary Files:** `lib/storage/exportImport.ts`, `components/settings/ImportExport.tsx`, `components/settings/SettingsScreen.tsx`
+
+---
+
 ### ✅ Phase 3 Prompt Management Completion (November 2025)
 Implemented full System Prompt and Slash Prompt management.
 
@@ -13,8 +42,6 @@ Implemented full System Prompt and Slash Prompt management.
 - 🧩 Dynamic Templates: `{variable}` prompts & `<input>` free-text replacement
 - 🌱 Default Seeding via `defaults/prompts.ts` on first load
 - 🔒 Default Prompt Protection (cannot delete; badge displayed)
-
-**Pending:** Import/Export of prompts & full app data (planned Phase 4).
 
 **Primary Files:** `SystemPromptsScreen.tsx`, `SystemPromptModal.tsx`, `SlashPromptsScreen.tsx`, `SlashPromptModal.tsx`, `EnhancedChatInput.tsx`, `lib/defaults/prompts.ts`, `lib/storage/localStorage.ts`
 
@@ -340,9 +367,10 @@ App
 - [x] Default prompts seeding
 - [x] Apply system prompt in chat
 - [x] Slash command autocomplete
-- [ ] Import/Export functionality (planned)
+- [x] Import/Export functionality ⭐ (moved from Phase 4)
 
 ### Phase 4: Polish & Optimization (1-2 weeks)
+- [x] Import/Export feature implementation ⭐ NEW
 - [ ] UI/UX refinements
 - [ ] Performance optimization
 - [ ] Accessibility (WCAG AA)
@@ -565,6 +593,7 @@ docker run -p 8080:80 runback-ai
 - [x] Enhanced Model Selector (full-screen modal, fuzzy search, dynamic fetching) implemented
 - [x] Provider-specific model parameter storage & UI (provider-scoped keys) implemented
 - [x] Session History management UI in Settings implemented (search, filter, reopen, delete protections)
+- [x] **Import/Export functionality** ⭐ NEW - Export all app data (except API keys) to JSON, import with merge or replace mode
 
 ---
 
