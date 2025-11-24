@@ -39,7 +39,7 @@ export default function ChatScreen() {
     clearError,
   } = useChatStore();
 
-  const { apiConfigs, loadAPIConfigs, isProviderConfigured } = useSettingsStore();
+  const { apiConfigs, loadAPIConfigs, isProviderConfigured, helperModel } = useSettingsStore();
 
   const [selectedProvider, setSelectedProvider] = useState<Provider>('openrouter');
   const [selectedModel, setSelectedModel] = useState<string>('');
@@ -71,18 +71,16 @@ export default function ChatScreen() {
   useEffect(() => {
     loadAPIConfigs();
     
-    // Load last used provider and model
+    // Default to OpenRouter with helper model from settings
+    setSelectedProvider('openrouter');
+    setSelectedModel(helperModel);
+    
+    // Load last used provider and model (optional override)
     const lastProvider = getLastProvider() as Provider;
     const lastModel = getLastModel();
     
     if (lastProvider && isProviderConfigured(lastProvider)) {
       setSelectedProvider(lastProvider);
-    } else {
-      // Find first configured provider
-      const firstConfigured = apiConfigs.find(c => c.isConfigured);
-      if (firstConfigured) {
-        setSelectedProvider(firstConfigured.provider as Provider);
-      }
     }
     
     if (lastModel) {
