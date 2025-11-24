@@ -178,6 +178,7 @@ export default function AIMessage({
                         src={asset.url}
                         alt={`Generated image ${idx + 1}`}
                         className="rounded-lg max-w-full h-auto"
+                        style={{ maxWidth: 'min(250px, 25vw)' }}
                         loading="lazy"
                       />
                       <button

@@ -33,6 +33,20 @@ export const DEFAULT_SYSTEM_PROMPTS: Omit<SystemPrompt, 'id' | 'createdAt' | 'up
 
 export const DEFAULT_SLASH_PROMPTS: Omit<SlashPrompt, 'id' | 'createdAt' | 'updatedAt' | 'usageCount'>[] = [
   {
+    command: '/make',
+    description: 'Create something based on your description',
+    template: 'Create a <input> with attention to detail and quality.',
+    variables: [],
+    isDefault: true,
+  },
+  {
+    command: '/improve',
+    description: 'Improve or enhance the provided text',
+    template: 'Improve and enhance the following:\n\n<input>',
+    variables: [],
+    isDefault: true,
+  },
+  {
     command: '/summarize',
     description: 'Summarize the provided text',
     template: 'Summarize the following text:\n\n{text}',

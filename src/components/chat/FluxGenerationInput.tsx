@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type KeyboardEvent } from 'react';
 import { PaperAirplaneIcon } from '@heroicons/react/24/solid';
 import { PhotoIcon } from '@heroicons/react/24/outline';
+import { Link } from 'react-router-dom';
+import { getSlashPrompts, saveSlashPrompt } from '../../lib/storage/localStorage';
+import type { SlashPrompt } from '../../types';
 
 interface FluxGenerationInputProps {
   onSend: (message: string) => void;
@@ -24,11 +27,99 @@ export default function FluxGenerationInput({
   const [outputFormat, setOutputFormat] = useState<OutputFormat>('jpeg');
   const [acceleration, setAcceleration] = useState<Acceleration>('none');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showSlashSuggestions, setShowSlashSuggestions] = useState(false);
+  const [slashSuggestions, setSlashSuggestions] = useState<SlashPrompt[]>([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load initial values when they change
   useEffect(() => {
     if (initialPrompt) setPrompt(initialPrompt);
   }, [initialPrompt]);
+
+  // Check for slash command trigger
+  useEffect(() => {
+    const lastWord = prompt.split(/\s/).pop() || '';
+    if (lastWord.startsWith('/') && lastWord.length > 0) {
+      const slashPrompts = getSlashPrompts();
+      const filtered = slashPrompts.filter(p => 
+        p.command.toLowerCase().startsWith(lastWord.toLowerCase())
+      );
+      if (filtered.length > 0) {
+        setSlashSuggestions(filtered);
+        setShowSlashSuggestions(true);
+        setSelectedSuggestionIndex(0);
+      } else {
+        setShowSlashSuggestions(false);
+      }
+    } else {
+      setShowSlashSuggestions(false);
+    }
+  }, [prompt]);
+
+  const handleSlashPromptSelect = (slashPrompt: SlashPrompt) => {
+    // Update usage count
+    saveSlashPrompt({
+      ...slashPrompt,
+      usageCount: slashPrompt.usageCount + 1,
+    });
+
+    // Parse the prompt to get the command and the input after it
+    const promptParts = prompt.trim().split(/\s+/);
+    const commandIndex = promptParts.findIndex(part => part.toLowerCase() === slashPrompt.command.toLowerCase());
+    
+    // Get everything after the command as the input
+    const userInput = commandIndex >= 0 && promptParts.length > commandIndex + 1
+      ? promptParts.slice(commandIndex + 1).join(' ')
+      : '';
+    
+    let finalTemplate = slashPrompt.template;
+    
+    // Check if template uses simple <input> placeholder
+    if (finalTemplate.includes('<input>')) {
+      finalTemplate = finalTemplate.replace(/<input>/g, userInput);
+    } else if (slashPrompt.variables.length > 0) {
+      // Use the existing variable system with prompts
+      for (const variable of slashPrompt.variables) {
+        const value = window.prompt(`Enter value for ${variable.name}:`, variable.defaultValue || '');
+        if (value !== null) {
+          finalTemplate = finalTemplate.replace(new RegExp(`\\{${variable.name}\\}`, 'g'), value);
+        }
+      }
+    }
+
+    setPrompt(finalTemplate);
+    setShowSlashSuggestions(false);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showSlashSuggestions) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => 
+          prev < slashSuggestions.length - 1 ? prev + 1 : prev
+        );
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedSuggestionIndex(prev => prev > 0 ? prev - 1 : prev);
+        return;
+      }
+      if (e.key === 'Tab' || e.key === 'Enter') {
+        if (!e.shiftKey && slashSuggestions[selectedSuggestionIndex]) {
+          e.preventDefault();
+          handleSlashPromptSelect(slashSuggestions[selectedSuggestionIndex]);
+          return;
+        }
+      }
+      if (e.key === 'Escape') {
+        setShowSlashSuggestions(false);
+        return;
+      }
+    }
+  };
 
   const handleSend = () => {
     if (!prompt.trim() || disabled) return;
@@ -61,11 +152,46 @@ export default function FluxGenerationInput({
             {showAdvanced ? 'Hide Options' : 'Show Options'}
           </button>
         </div>
+
+        {/* Slash Suggestions Dropdown */}
+        {showSlashSuggestions && slashSuggestions.length > 0 && (
+          <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Slash Commands</span>
+              <Link
+                to="/slash-prompts"
+                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+              >
+                Manage
+              </Link>
+            </div>
+            {slashSuggestions.map((suggestion, index) => (
+              <button
+                key={suggestion.id}
+                onClick={() => handleSlashPromptSelect(suggestion)}
+                className={`w-full text-left px-4 py-3 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                  index === selectedSuggestionIndex ? 'bg-gray-100 dark:bg-gray-700' : ''
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <code className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
+                    {suggestion.command}
+                  </code>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {suggestion.description}
+                </p>
+              </button>
+            ))}
+          </div>
+        )}
         
         <textarea
+          ref={textareaRef}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Describe the image you want to generate..."
+          onKeyDown={handleKeyDown}
+          placeholder="Describe the image you want to generate... (Type / for commands)"
           disabled={disabled}
           rows={3}
           className="w-full resize-none bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"

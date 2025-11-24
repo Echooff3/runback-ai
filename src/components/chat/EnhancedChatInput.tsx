@@ -113,15 +113,23 @@ export default function EnhancedChatInput({
       usageCount: slashPrompt.usageCount + 1,
     });
 
-    // Replace the /command with the template
-    const words = message.split(/\s/);
-    words.pop(); // Remove the /command
+    // Parse the message to get the command and the input after it
+    const messageParts = message.trim().split(/\s+/);
+    const commandIndex = messageParts.findIndex(part => part.toLowerCase() === slashPrompt.command.toLowerCase());
     
-    // If template has variables, show a simple inline prompt for now
+    // Get everything after the command as the input
+    const userInput = commandIndex >= 0 && messageParts.length > commandIndex + 1
+      ? messageParts.slice(commandIndex + 1).join(' ')
+      : '';
+    
     let finalTemplate = slashPrompt.template;
     
-    if (slashPrompt.variables.length > 0) {
-      // Simple variable replacement with prompts
+    // Check if template uses simple <input> placeholder
+    if (finalTemplate.includes('<input>')) {
+      // Replace <input> with everything typed after the command
+      finalTemplate = finalTemplate.replace(/<input>/g, userInput);
+    } else if (slashPrompt.variables.length > 0) {
+      // Use the existing variable system with prompts
       for (const variable of slashPrompt.variables) {
         const value = prompt(`Enter value for ${variable.name}:`, variable.defaultValue || '');
         if (value !== null) {
@@ -130,8 +138,7 @@ export default function EnhancedChatInput({
       }
     }
 
-    const newMessage = words.length > 0 ? words.join(' ') + ' ' + finalTemplate : finalTemplate;
-    setMessage(newMessage);
+    setMessage(finalTemplate);
     setShowSlashSuggestions(false);
     
     // Focus back on textarea
@@ -172,6 +179,15 @@ export default function EnhancedChatInput({
       {/* Slash Suggestions Dropdown */}
       {showSlashSuggestions && slashSuggestions.length > 0 && (
         <div className="mb-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+          <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Slash Commands</span>
+            <Link
+              to="/slash-prompts"
+              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+            >
+              Manage
+            </Link>
+          </div>
           {slashSuggestions.map((suggestion, index) => (
             <button
               key={suggestion.id}

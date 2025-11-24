@@ -22,6 +22,9 @@ export default function SlashPromptModal({ prompt, onSave, onClose }: SlashPromp
     setDetectedVariables(uniqueVars);
   }, [template]);
 
+  // Check if template contains <input> placeholder
+  const hasInputPlaceholder = template.includes('<input>');
+
   const handleSave = () => {
     if (!command.trim() || !command.startsWith('/')) {
       alert('Command must start with /');
@@ -135,18 +138,31 @@ export default function SlashPromptModal({ prompt, onSave, onClose }: SlashPromp
             <textarea
               value={template}
               onChange={(e) => setTemplate(e.target.value)}
-              placeholder="Enter template text. Use {variableName} for placeholders"
+              placeholder="Enter template text. Use {variableName} for placeholders or <input> for simple input"
               rows={6}
               maxLength={1000}
               className="w-full resize-none bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-sm"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Use {'{variable}'} syntax for placeholders
+              Use {'{variable}'} syntax for multiple placeholders, or <code className="px-1 py-0.5 bg-gray-200 dark:bg-gray-700 rounded">&lt;input&gt;</code> for simple single input
             </p>
           </div>
 
+          {/* Simple Input Placeholder Info */}
+          {hasInputPlaceholder && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+              <p className="text-sm font-medium text-green-900 dark:text-green-100 mb-1">
+                Simple Input Mode
+              </p>
+              <p className="text-xs text-green-700 dark:text-green-300">
+                <code className="px-1 py-0.5 bg-green-100 dark:bg-green-900 rounded">&lt;input&gt;</code> will be replaced with everything you type after the command. 
+                Example: <code className="px-1 py-0.5 bg-green-100 dark:bg-green-900 rounded">/make landscape painting</code> replaces <code className="px-1 py-0.5 bg-green-100 dark:bg-green-900 rounded">&lt;input&gt;</code> with "landscape painting"
+              </p>
+            </div>
+          )}
+
           {/* Detected Variables */}
-          {detectedVariables.length > 0 && (
+          {detectedVariables.length > 0 && !hasInputPlaceholder && (
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
               <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
                 Detected Variables:
