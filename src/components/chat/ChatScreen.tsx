@@ -48,6 +48,8 @@ export default function ChatScreen() {
   const [fluxDraft, setFluxDraft] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visibilityMapRef = useRef<Map<string, boolean>>(new Map());
+  const isRestoringFromSessionRef = useRef(false);
+  const lastSessionIdRef = useRef<string | null>(null);
 
   // Debug logging for parameter changes
   useEffect(() => {
@@ -93,7 +95,11 @@ export default function ChatScreen() {
 
   // Restore session's provider and model when currentSession changes (tab switch)
   useEffect(() => {
-    if (currentSession) {
+    if (currentSession && currentSession.id !== lastSessionIdRef.current) {
+      // Mark that we're restoring from a session switch
+      isRestoringFromSessionRef.current = true;
+      lastSessionIdRef.current = currentSession.id;
+      
       // Update UI to match the session's settings
       if (currentSession.provider) {
         setSelectedProvider(currentSession.provider);
@@ -101,6 +107,11 @@ export default function ChatScreen() {
       if (currentSession.model) {
         setSelectedModel(currentSession.model);
       }
+      
+      // Reset the flag after state updates have propagated
+      setTimeout(() => {
+        isRestoringFromSessionRef.current = false;
+      }, 0);
     }
   }, [currentSession?.id]); // Only trigger when session ID changes (tab switch)
 
@@ -122,15 +133,15 @@ export default function ChatScreen() {
     }
   }, [selectedProvider]);
 
-  // Save provider/model changes to local storage
+  // Save provider/model changes to local storage (but not during restoration)
   useEffect(() => {
-    if (selectedProvider) {
+    if (selectedProvider && !isRestoringFromSessionRef.current) {
       saveLastProvider(selectedProvider);
     }
   }, [selectedProvider]);
 
   useEffect(() => {
-    if (selectedModel) {
+    if (selectedModel && !isRestoringFromSessionRef.current) {
       saveLastModel(selectedModel);
     }
   }, [selectedModel]);
@@ -151,6 +162,11 @@ export default function ChatScreen() {
 
   // Save provider/model changes to the current session
   useEffect(() => {
+    // Skip if we're restoring from a session switch to avoid circular updates
+    if (isRestoringFromSessionRef.current) {
+      return;
+    }
+    
     if (currentSession && selectedProvider && selectedModel) {
       // Only update if they're different from the session's current settings
       if (currentSession.provider !== selectedProvider || currentSession.model !== selectedModel) {

@@ -6,6 +6,7 @@ import {
   loadOpenSessions,
   loadAllSessions as loadAllSessionsFromDB,
   deleteSession as deleteSessionFromDB,
+  deleteAllNonStarred as deleteAllNonStarredFromDB,
   toggleStarSession as toggleStarInDB,
   updateSessionTitle as updateTitleInDB,
   closeSession as closeSessionInDB,
@@ -30,6 +31,7 @@ interface ChatState {
   closeSessionTab: (sessionId: string) => Promise<void>;
   reopenSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<{ success: boolean; error?: string }>;
+  deleteAllNonStarred: () => Promise<{ success: boolean; deletedCount: number; error?: string }>;
   toggleStarSession: (sessionId: string) => Promise<void>;
   updateSessionTitle: (sessionId: string, title: string) => Promise<void>;
   updateSessionSettings: (sessionId: string, provider: Provider, model: string) => Promise<void>;
@@ -192,6 +194,39 @@ export const useChatStore = create<ChatState>((set, get) => ({
       let newCurrentSession = state.currentSession;
       
       if (state.activeSessionId === sessionId) {
+        if (updatedSessions.length > 0) {
+          newActiveId = updatedSessions[0].id;
+          newCurrentSession = updatedSessions[0];
+        } else {
+          newActiveId = null;
+          newCurrentSession = null;
+        }
+      }
+      
+      set({ 
+        sessions: updatedSessions,
+        activeSessionId: newActiveId,
+        currentSession: newCurrentSession
+      });
+    }
+    
+    return result;
+  },
+
+  deleteAllNonStarred: async () => {
+    const result = await deleteAllNonStarredFromDB();
+    
+    if (result.success) {
+      const state = get();
+      // Keep only starred sessions
+      const updatedSessions = state.sessions.filter(s => s.isStarred);
+      
+      // If active session was deleted, switch to first remaining or null
+      let newActiveId = state.activeSessionId;
+      let newCurrentSession = state.currentSession;
+      
+      const activeSessionStillExists = updatedSessions.some(s => s.id === state.activeSessionId);
+      if (!activeSessionStillExists) {
         if (updatedSessions.length > 0) {
           newActiveId = updatedSessions[0].id;
           newCurrentSession = updatedSessions[0];
