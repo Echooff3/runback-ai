@@ -152,6 +152,24 @@ export class AIClient {
   refreshClients() {
     this.initializeClients();
   }
+
+  async getOpenRouterModels(): Promise<{ id: string; context_length: number }[]> {
+    if (!this.openRouterClient) {
+      // Try to initialize if not already done (e.g. if key was just added)
+      const openrouterConfig = getAPIConfig('openrouter');
+      if (openrouterConfig?.apiKey) {
+        this.openRouterClient = new OpenRouterClient(
+          openrouterConfig.apiKey,
+          openrouterConfig.endpoint
+        );
+      }
+    }
+    
+    if (this.openRouterClient) {
+      return await this.openRouterClient.getModels();
+    }
+    return [];
+  }
 }
 
 // Singleton instance

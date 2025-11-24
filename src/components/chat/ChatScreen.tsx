@@ -4,7 +4,7 @@ import { Cog6ToothIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { getAIClient } from '../../lib/api';
+import { getAIClient, estimateTokenCount } from '../../lib/api';
 import { getLastProvider, getLastModel, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
 import type { Provider, ChatMessage, ModelParameters, AIResponse, ChatSession, SessionCheckpoint } from '../../types';
@@ -47,6 +47,7 @@ export default function ChatScreen() {
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const [musicDraft, setMusicDraft] = useState<{ style: string; lyrics: string } | null>(null);
   const [fluxDraft, setFluxDraft] = useState<string>('');
+  const [modelContextLength, setModelContextLength] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visibilityMapRef = useRef<Map<string, boolean>>(new Map());
   const isRestoringFromSessionRef = useRef(false);
@@ -62,6 +63,28 @@ export default function ChatScreen() {
     console.log('[ChatScreen] handleParametersChange called with:', JSON.stringify(parameters, null, 2));
     setModelParameters(parameters);
   };
+
+  // Fetch model context length
+  useEffect(() => {
+    const fetchModelInfo = async () => {
+      if (selectedProvider === 'openrouter') {
+        const aiClient = getAIClient();
+        const models = await aiClient.getOpenRouterModels();
+        const modelInfo = models.find(m => m.id === selectedModel);
+        if (modelInfo) {
+          setModelContextLength(modelInfo.context_length);
+          console.log(`[ChatScreen] Model ${selectedModel} context length: ${modelInfo.context_length}`);
+        }
+      } else {
+        // For other providers, we might not have this info dynamically yet
+        setModelContextLength(0);
+      }
+    };
+    
+    if (selectedModel) {
+      fetchModelInfo();
+    }
+  }, [selectedModel, selectedProvider]);
   
   // Cleanup polling on unmount
   useEffect(() => {
@@ -264,6 +287,20 @@ export default function ChatScreen() {
     if (!currentSession || !selectedModel) return;
 
     clearError();
+
+    // Check token usage for auto-checkpoint (OpenRouter only for now)
+    if (selectedProvider === 'openrouter' && modelContextLength > 0) {
+      // Calculate current context tokens
+      const contextMessages = getConversationContext(currentSession);
+      const contextText = contextMessages.map(m => m.content).join(' ');
+      const currentTokens = estimateTokenCount(contextText + content + (systemPromptContent || ''));
+      
+      if (currentTokens > modelContextLength * 0.6) {
+        console.log(`[ChatScreen] Token count ${currentTokens} exceeds 60% of ${modelContextLength}. Creating checkpoint...`);
+        await createCheckpoint();
+      }
+    }
+
     const userMessage = addUserMessage(content);
     setLoading(true);
 
@@ -277,7 +314,12 @@ export default function ChatScreen() {
         // For OpenRouter, use full context with checkpoints
         let conversationHistory: { role: 'user' | 'assistant' | 'system'; content: string }[] | undefined;
         if (selectedProvider === 'openrouter') {
-          conversationHistory = getConversationContext(currentSession);
+          // Get the latest session state which includes the new message and potentially the new checkpoint
+          const latestSession = useChatStore.getState().currentSession;
+          if (latestSession) {
+            // Pass userMessage.id to exclude the current message from history (it's added separately in sendMessage)
+            conversationHistory = getConversationContext(latestSession, userMessage.id);
+          }
         }
 
         const response = await aiClient.sendMessage({
