@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { 
   ArrowPathIcon, 
   ClipboardIcon,
@@ -12,6 +12,7 @@ import {
   ChevronDownIcon
 } from '@heroicons/react/24/outline';
 import type { ChatMessage, MediaAsset } from '../../types';
+import { renderMarkdown } from '../../lib/markdown';
 
 interface AIMessageProps {
   message: ChatMessage;
@@ -72,6 +73,12 @@ export default function AIMessage({
       observer.disconnect();
     };
   }, [onVisibilityChange]);
+
+  // Memoize the rendered markdown to avoid re-rendering on every render
+  const renderedContent = useMemo(() => {
+    if (!currentResponse?.content) return '';
+    return renderMarkdown(currentResponse.content);
+  }, [currentResponse?.content]);
 
   if (!currentResponse) {
     return null;
@@ -232,9 +239,10 @@ export default function AIMessage({
           )}
 
           {/* Text Content */}
-          <p className="whitespace-pre-wrap break-words text-gray-900 dark:text-gray-100">
-            {currentResponse.content}
-          </p>
+          <div 
+            className="markdown-content markdown-content-ai text-gray-900 dark:text-gray-100"
+            dangerouslySetInnerHTML={{ __html: renderedContent }}
+          />
 
           {/* Notes Section */}
           {(isEditingNote || currentResponse.notes) && (
