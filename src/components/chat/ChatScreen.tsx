@@ -112,15 +112,15 @@ export default function ChatScreen() {
     
     // Load last used provider and model (optional override)
     const lastProvider = getLastProvider() as Provider;
-    const lastModel = getLastModel();
+    // const lastModel = getLastModel(); // Commented out to enforce helperModel as default for new chats
     
     if (lastProvider && isProviderConfigured(lastProvider)) {
       setSelectedProvider(lastProvider);
     }
     
-    if (lastModel) {
+    /* if (lastModel) {
       setSelectedModel(lastModel);
-    }
+    } */
 
     // Load existing sessions
     loadSessions();
@@ -617,8 +617,8 @@ export default function ChatScreen() {
     <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
       {/* Session tabs */}
       <SessionTabs 
-        defaultProvider={selectedProvider}
-        defaultModel={selectedModel}
+        defaultProvider="openrouter"
+        defaultModel={helperModel}
       />
 
       {/* Header with provider and model selection */}

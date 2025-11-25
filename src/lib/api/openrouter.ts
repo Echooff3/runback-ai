@@ -109,6 +109,7 @@ export const estimateTokenCount = (text: string): number => {
 
 // Available models for OpenRouter
 export const OPENROUTER_MODELS = [
+  { id: 'x-ai/grok-3-mini', name: 'Grok 3 Mini' },
   { id: 'openai/gpt-4-turbo', name: 'GPT-4 Turbo' },
   { id: 'openai/gpt-4', name: 'GPT-4' },
   { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },

@@ -35,7 +35,8 @@ export default function ModelSelectorModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { getAPIKey } = useSettingsStore();
+  const { getAPIKey, helperModel } = useSettingsStore();
+  const [helperModelError, setHelperModelError] = useState<string | null>(null);
 
   // Fetch models when modal opens
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function ModelSelectorModal({
   };
 
   const fetchOpenRouterModels = async (apiKey: string): Promise<Model[]> => {
+    setHelperModelError(null);
     const response = await fetch('https://openrouter.ai/api/v1/models', {
       method: 'GET',
       headers: {
@@ -132,13 +134,32 @@ export default function ModelSelectorModal({
       pricing?: { prompt?: string; completion?: string };
     }>};
     
-    return data.data.map((model) => ({
+    const models = data.data.map((model) => ({
       id: model.id,
       name: model.name || model.id,
       description: model.description,
       context_length: model.context_length,
       pricing: model.pricing,
     }));
+
+    // Prioritize helper model
+    const helperIndex = models.findIndex(m => m.id === helperModel);
+    if (helperIndex !== -1) {
+      const [helper] = models.splice(helperIndex, 1);
+      models.unshift(helper);
+    } else {
+      try {
+        // Try to fetch helper model info specifically if not in list
+        // Note: OpenRouter doesn't have a specific single-model endpoint documented that is standard,
+        // but we can try to add it if we know it exists or just show error.
+        // For now, we'll show the error as requested.
+        setHelperModelError(`Helper model '${helperModel}' not found in available models.`);
+      } catch (e) {
+        console.error('Failed to process helper model:', e);
+      }
+    }
+
+    return models;
   };
 
   const fetchReplicateModels = async (_apiKey: string): Promise<Model[]> => {
@@ -189,6 +210,7 @@ export default function ModelSelectorModal({
   const getDefaultModels = (provider: Provider): Model[] => {
     const defaults = {
       openrouter: [
+        { id: 'x-ai/grok-3-mini', name: 'Grok 3 Mini', description: 'Grok 3 Mini model' },
         { id: 'openai/gpt-4-turbo', name: 'GPT-4 Turbo', description: 'Most capable GPT-4 model' },
         { id: 'openai/gpt-4', name: 'GPT-4', description: 'High intelligence model' },
         { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo', description: 'Fast and efficient' },
@@ -303,6 +325,11 @@ export default function ModelSelectorModal({
             </div>
           ) : (
             <div className="py-2">
+              {helperModelError && (
+                <div className="px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-sm border-b border-yellow-100 dark:border-yellow-800 mb-2">
+                  Warning: {helperModelError}
+                </div>
+              )}
               {filteredModels.map((model) => {
                 const isSelected = model.id === selectedModel;
                 
