@@ -168,18 +168,18 @@ export default function SongwritingScreen() {
           </button>
         </div>
         
-        <div className="flex-1 flex gap-4">
+        <div className="flex-1 flex flex-col md:flex-row gap-4">
           <textarea
             ref={lyricsTextareaRef}
             value={lyrics}
             onChange={(e) => setLyrics(e.target.value)}
             placeholder="Start writing your lyrics here..."
-            className="flex-1 p-4 text-base leading-relaxed rounded-md border border-gray-300 dark:border-gray-600 bg-transparent dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none font-mono"
+            className="flex-1 min-h-[300px] p-4 text-base leading-relaxed rounded-md border border-gray-300 dark:border-gray-600 bg-transparent dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none font-mono"
           />
           
           {/* Suggestions Panel */}
           {suggestions && (
-            <div className="w-1/3 bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-md border border-indigo-100 dark:border-indigo-800 overflow-y-auto">
+            <div className="w-full md:w-1/3 max-h-[300px] md:max-h-none bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-md border border-indigo-100 dark:border-indigo-800 overflow-y-auto">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-xs font-bold text-indigo-800 dark:text-indigo-200 uppercase tracking-wide">Suggestions</h3>
                 <button 
