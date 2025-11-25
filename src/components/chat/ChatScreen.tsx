@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient, estimateTokenCount } from '../../lib/api';
-import { getLastProvider, getLastModel, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
+import { getLastProvider, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
 import type { Provider, ChatMessage, ModelParameters, AIResponse, ChatSession, SessionCheckpoint } from '../../types';
 import SessionTabs from './SessionTabs';
