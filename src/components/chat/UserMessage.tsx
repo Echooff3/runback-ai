@@ -1,6 +1,8 @@
 import { format } from 'date-fns';
+import { useMemo } from 'react';
 import { ArrowPathIcon, ClipboardIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import type { ChatMessage } from '../../types';
+import { renderMarkdown } from '../../lib/markdown';
 
 interface UserMessageProps {
   message: ChatMessage;
@@ -13,30 +15,46 @@ export default function UserMessage({ message, onRerun, onCopy, onToggleCollapse
   const responseCount = message.responses?.length || 0;
   const isCollapsed = message.isCollapsed || false;
   
-  const formatContent = (content: string) => {
+  // Memoize the rendered markdown content
+  const renderedContent = useMemo(() => {
+    const content = message.content;
     try {
       // Check if it looks like our music generation JSON
       if (content.trim().startsWith('{') && content.includes('"lyrics_prompt"')) {
         const parsed = JSON.parse(content);
         if (parsed.prompt && parsed.lyrics_prompt) {
-          return (
-            <div className="flex flex-col gap-2">
-              <div>
-                <span className="font-bold opacity-80 text-xs uppercase tracking-wider block mb-1">Style</span>
-                <span>{parsed.prompt}</span>
-              </div>
-              <div className="border-t border-white/20 pt-2 mt-1">
-                <span className="font-bold opacity-80 text-xs uppercase tracking-wider block mb-1">Lyrics</span>
-                <span className="whitespace-pre-wrap font-mono text-sm">{parsed.lyrics_prompt}</span>
-              </div>
-            </div>
-          );
+          // Return a special marker for JSON content
+          return { type: 'music' as const, data: parsed };
         }
       }
-    } catch (e) {
+    } catch {
       // Ignore parsing errors
     }
-    return <p className="whitespace-pre-wrap break-words">{content}</p>;
+    // Return markdown rendered HTML
+    return { type: 'markdown' as const, html: renderMarkdown(content) };
+  }, [message.content]);
+
+  const formatContent = () => {
+    if (renderedContent.type === 'music') {
+      return (
+        <div className="flex flex-col gap-2">
+          <div>
+            <span className="font-bold opacity-80 text-xs uppercase tracking-wider block mb-1">Style</span>
+            <span>{renderedContent.data.prompt}</span>
+          </div>
+          <div className="border-t border-white/20 pt-2 mt-1">
+            <span className="font-bold opacity-80 text-xs uppercase tracking-wider block mb-1">Lyrics</span>
+            <span className="whitespace-pre-wrap font-mono text-sm">{renderedContent.data.lyrics_prompt}</span>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div 
+        className="markdown-content markdown-content-user"
+        dangerouslySetInnerHTML={{ __html: renderedContent.html }}
+      />
+    );
   };
 
   return (
@@ -65,7 +83,7 @@ export default function UserMessage({ message, onRerun, onCopy, onToggleCollapse
             </div>
           ) : (
             <div className="pr-6">
-              {formatContent(message.content)}
+              {formatContent()}
             </div>
           )}
         </div>
