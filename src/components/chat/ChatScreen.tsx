@@ -618,18 +618,20 @@ export default function ChatScreen() {
 
   if (currentSession?.type === 'songwriting') {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+      <div className="h-screen overflow-hidden bg-white dark:bg-gray-900 flex flex-col">
         <SessionTabs 
           defaultProvider="openrouter"
           defaultModel={helperModel}
         />
-        <SongwritingScreen />
+        <div className="flex-1 overflow-hidden">
+          <SongwritingScreen />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+    <div className="h-screen overflow-hidden bg-white dark:bg-gray-900 flex flex-col">
       {/* Session tabs */}
       <SessionTabs 
         defaultProvider="openrouter"
