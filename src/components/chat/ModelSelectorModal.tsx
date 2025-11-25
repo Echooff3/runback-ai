@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
-import { XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, MagnifyingGlassIcon, StarIcon as StarIconOutline } from '@heroicons/react/24/outline';
+import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { search } from 'fast-fuzzy';
 import type { Provider } from '../../types';
 import { useSettingsStore } from '../../stores/settingsStore';
@@ -36,7 +37,7 @@ export default function ModelSelectorModal({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const { getAPIKey, helperModel } = useSettingsStore();
+  const { getAPIKey, helperModel, setHelperModel } = useSettingsStore();
   const [helperModelError, setHelperModelError] = useState<string | null>(null);
 
   // Fetch models when modal opens
@@ -322,14 +323,17 @@ export default function ModelSelectorModal({
               )}
               {filteredModels.map((model) => {
                 const isSelected = model.id === selectedModel;
+                const isHelper = model.id === helperModel;
                 
                 return (
-                  <button
+                  <div
                     key={model.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => handleSelectModel(model.id)}
                     onKeyDown={(e) => handleKeyDown(e, model.id)}
                     className={`
-                      w-full px-4 py-3 text-left transition-colors
+                      w-full px-4 py-3 text-left transition-colors group cursor-pointer
                       hover:bg-gray-50 dark:hover:bg-gray-800
                       focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-800
                       ${isSelected ? 'bg-indigo-50 dark:bg-indigo-900/20' : ''}
@@ -368,15 +372,39 @@ export default function ModelSelectorModal({
                           </p>
                         )}
                       </div>
-                      {isSelected && (
-                        <div className="flex-shrink-0 text-indigo-600 dark:text-indigo-400">
-                          <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
-                        </div>
-                      )}
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setHelperModel(model.id);
+                          }}
+                          className={`
+                            p-1.5 rounded-full transition-colors
+                            ${isHelper 
+                              ? 'text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' 
+                              : 'text-gray-300 dark:text-gray-600 hover:text-yellow-500 hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 focus:opacity-100'
+                            }
+                          `}
+                          title={isHelper ? "Current helper model" : "Set as helper model"}
+                        >
+                          {isHelper ? (
+                            <StarIconSolid className="w-5 h-5" />
+                          ) : (
+                            <StarIconOutline className="w-5 h-5" />
+                          )}
+                        </button>
+
+                        {isSelected && (
+                          <div className="flex-shrink-0 text-indigo-600 dark:text-indigo-400">
+                            <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>
