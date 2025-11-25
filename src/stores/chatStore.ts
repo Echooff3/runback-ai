@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { ChatMessage, ChatSession, AIResponse, Provider, SessionCheckpoint } from '../types';
+import type { ChatMessage, ChatSession, AIResponse, Provider, SessionCheckpoint, Attachment } from '../types';
 import { AiPolisherTasks } from '../lib/aiPolisher';
 import { useSettingsStore } from './settingsStore';
 import { 
@@ -40,7 +40,7 @@ interface ChatState {
   createCheckpoint: () => Promise<void>;
   
   // Message actions
-  addUserMessage: (content: string) => ChatMessage;
+  addUserMessage: (content: string, attachments?: Attachment[]) => ChatMessage;
   addAIResponse: (userMessageId: string, response: AIResponse) => void;
   updateAIResponseStatus: (userMessageId: string, responseId: string, updates: Partial<AIResponse>) => void;
   updateAIResponseNote: (userMessageId: string, responseId: string, note: string) => void;
@@ -365,7 +365,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
   
-  addUserMessage: (content: string) => {
+  addUserMessage: (content: string, attachments?: Attachment[]) => {
     const state = get();
     if (!state.currentSession) {
       throw new Error('No active session');
@@ -375,6 +375,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       id: uuidv4(),
       role: 'user',
       content,
+      attachments,
       timestamp: new Date().toISOString(),
       responses: [],
       currentResponseIndex: 0,

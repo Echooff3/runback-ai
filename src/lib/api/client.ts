@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { OpenRouterClient, type OpenRouterMessage } from './openrouter';
 import { ReplicateClient } from './replicate';
 import { FalClient } from './fal';
-import type { Provider, AIResponse } from '../../types';
+import type { Provider, AIResponse, Attachment } from '../../types';
 import { getAPIConfig } from '../storage/localStorage';
 
 export interface SendMessageOptions {
@@ -12,6 +12,7 @@ export interface SendMessageOptions {
   systemPrompt?: string;
   conversationHistory?: { role: 'user' | 'assistant' | 'system'; content: string }[];
   additionalParameters?: Record<string, any>;
+  attachments?: Attachment[];
 }
 
 export class AIClient {
@@ -44,7 +45,7 @@ export class AIClient {
   }
 
   async sendMessage(options: SendMessageOptions): Promise<AIResponse> {
-    const { provider, model, userMessage, systemPrompt, conversationHistory, additionalParameters } = options;
+    const { provider, model, userMessage, systemPrompt, conversationHistory, additionalParameters, attachments } = options;
 
     let result: { content: string; tokenCount?: number; responseTime: number };
 
@@ -57,7 +58,8 @@ export class AIClient {
           model,
           userMessage,
           systemPrompt,
-          conversationHistory
+          conversationHistory,
+          attachments
         );
         break;
 
@@ -99,7 +101,8 @@ export class AIClient {
     model: string,
     userMessage: string,
     systemPrompt?: string,
-    conversationHistory?: { role: 'user' | 'assistant' | 'system'; content: string }[]
+    conversationHistory?: { role: 'user' | 'assistant' | 'system'; content: string }[],
+    attachments?: Attachment[]
   ): Promise<{ content: string; tokenCount?: number; responseTime: number }> {
     if (!this.openRouterClient) {
       throw new Error('OpenRouter client not initialized');
@@ -114,11 +117,36 @@ export class AIClient {
 
     // Add conversation history if provided
     if (conversationHistory && conversationHistory.length > 0) {
-      messages.push(...conversationHistory);
+      // We need to map conversation history to OpenRouterMessage format
+      // Assuming conversationHistory content is string for now, as we don't store attachments in history yet
+      // If we did, we'd need to handle that here too.
+      messages.push(...conversationHistory.map(msg => ({
+        role: msg.role,
+        content: msg.content
+      })));
     }
 
     // Add current user message
-    messages.push({ role: 'user', content: userMessage });
+    if (attachments && attachments.length > 0) {
+      const content: any[] = [
+        { type: 'text', text: userMessage }
+      ];
+      
+      attachments.forEach(att => {
+        if (att.type === 'image') {
+          content.push({
+            type: 'image_url',
+            image_url: {
+              url: att.content
+            }
+          });
+        }
+      });
+      
+      messages.push({ role: 'user', content });
+    } else {
+      messages.push({ role: 'user', content: userMessage });
+    }
 
     return await this.openRouterClient.sendMessage(model, messages);
   }

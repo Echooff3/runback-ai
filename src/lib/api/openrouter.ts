@@ -2,7 +2,13 @@ import axios from 'axios';
 
 export interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
-  content: string;
+  content: string | Array<{
+    type: 'text' | 'image_url';
+    text?: string;
+    image_url?: {
+      url: string;
+    };
+  }>;
 }
 
 export interface OpenRouterRequest {
@@ -115,8 +121,12 @@ export class OpenRouterClient {
 }
 
 // Helper to estimate token count (rough approximation: 4 chars per token)
-export const estimateTokenCount = (text: string): number => {
-  return Math.ceil(text.length / 4);
+export const estimateTokenCount = (text: string | any): number => {
+  if (typeof text === 'string') {
+    return Math.ceil(text.length / 4);
+  }
+  // Rough estimate for images/structured content
+  return 100; 
 };
 
 // Available models for OpenRouter

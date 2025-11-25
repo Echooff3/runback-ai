@@ -7,7 +7,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient, estimateTokenCount } from '../../lib/api';
 import { getLastProvider, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
-import type { Provider, ChatMessage, ModelParameters, AIResponse, ChatSession, SessionCheckpoint } from '../../types';
+import type { Provider, ChatMessage, ModelParameters, AIResponse, ChatSession, SessionCheckpoint, Attachment } from '../../types';
 import SessionTabs from './SessionTabs';
 import ProviderSelector from './ProviderSelector';
 import ModelSelector from './ModelSelector';
@@ -292,7 +292,7 @@ export default function ChatScreen() {
     return contextMessages;
   };
 
-  const handleSendMessage = async (content: string, systemPromptContent?: string) => {
+  const handleSendMessage = async (content: string, systemPromptContent?: string, attachments?: Attachment[]) => {
     if (!currentSession || !selectedModel) return;
 
     // Handle manual checkpoint command
@@ -328,7 +328,7 @@ export default function ChatScreen() {
       }
     }
 
-    const userMessage = addUserMessage(content);
+    const userMessage = addUserMessage(content, attachments);
     setLoading(true);
 
     try {
@@ -355,6 +355,7 @@ export default function ChatScreen() {
           userMessage: content,
           systemPrompt: systemPromptContent,
           conversationHistory,
+          attachments,
         });
 
         // Update generation number based on existing responses
@@ -497,6 +498,7 @@ export default function ChatScreen() {
           model: selectedModel,
           userMessage: message.content,
           conversationHistory,
+          attachments: message.attachments,
         });
 
         // Update generation number
@@ -765,6 +767,7 @@ export default function ChatScreen() {
           onSend={handleSendMessage}
           disabled={isLoading || !selectedModel}
           placeholder={selectedModel ? 'Type your message or / for commands...' : 'Select a model to start chatting'}
+          selectedProvider={selectedProvider}
         />
       )}
     </div>

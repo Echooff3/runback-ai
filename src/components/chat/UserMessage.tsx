@@ -50,10 +50,23 @@ export default function UserMessage({ message, onRerun, onCopy, onToggleCollapse
       );
     }
     return (
-      <div 
-        className="markdown-content markdown-content-user"
-        dangerouslySetInnerHTML={{ __html: renderedContent.html }}
-      />
+      <div className="flex flex-col gap-2">
+        {message.attachments?.map((att, i) => (
+          att.type === 'image' && (
+            <img 
+              key={i} 
+              src={att.content} 
+              alt={att.name || 'Attached image'} 
+              className="max-w-full rounded-lg mb-2 border border-white/20" 
+              style={{ maxHeight: '300px' }}
+            />
+          )
+        ))}
+        <div 
+          className="markdown-content markdown-content-user"
+          dangerouslySetInnerHTML={{ __html: renderedContent.html }}
+        />
+      </div>
     );
   };
 

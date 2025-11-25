@@ -56,6 +56,13 @@ export interface MediaAsset {
   filename?: string;
 }
 
+export interface Attachment {
+  type: 'image';
+  content: string; // base64 or url
+  mimeType?: string;
+  name?: string;
+}
+
 export interface AIResponse {
   id: string;
   content: string;
@@ -80,6 +87,7 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  attachments?: Attachment[];
   timestamp: string;
   responses?: AIResponse[];
   currentResponseIndex?: number;
