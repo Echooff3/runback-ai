@@ -8,6 +8,11 @@ export interface OpenRouterMessage {
 export interface OpenRouterRequest {
   model: string;
   messages: OpenRouterMessage[];
+  plugins?: Array<{
+    id: string;
+    max_results?: number;
+    search_prompt?: string;
+  }>;
 }
 
 export interface OpenRouterResponse {
@@ -40,17 +45,24 @@ export class OpenRouterClient {
 
   async sendMessage(
     model: string,
-    messages: OpenRouterMessage[]
+    messages: OpenRouterMessage[],
+    enableWebSearch: boolean = true
   ): Promise<{ content: string; tokenCount?: number; responseTime: number }> {
     const startTime = Date.now();
+
+    const requestBody: OpenRouterRequest = {
+      model,
+      messages,
+    };
+
+    if (enableWebSearch) {
+      requestBody.plugins = [{ id: 'web' }];
+    }
 
     try {
       const response = await axios.post<OpenRouterResponse>(
         this.endpoint,
-        {
-          model,
-          messages,
-        },
+        requestBody,
         {
           headers: {
             'Authorization': `Bearer ${this.apiKey}`,
@@ -83,7 +95,7 @@ export class OpenRouterClient {
     try {
       await this.sendMessage(TEST_MODEL, [
         { role: 'user', content: 'Hello' }
-      ]);
+      ], false);
       return true;
     } catch (error) {
       console.error('OpenRouter connection test failed:', error);
