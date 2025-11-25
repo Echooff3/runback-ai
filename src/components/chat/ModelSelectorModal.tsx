@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { search } from 'fast-fuzzy';
 import type { Provider } from '../../types';
 import { useSettingsStore } from '../../stores/settingsStore';
 
@@ -56,19 +57,8 @@ export default function ModelSelectorModal({
       return;
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = models.filter(model => {
-      const searchText = `${model.name} ${model.id} ${model.description || ''}`.toLowerCase();
-      
-      // Simple fuzzy matching: check if all characters appear in order
-      let searchIndex = 0;
-      for (let i = 0; i < searchText.length && searchIndex < query.length; i++) {
-        if (searchText[i] === query[searchIndex]) {
-          searchIndex++;
-        }
-      }
-      
-      return searchIndex === query.length;
+    const filtered = search(searchQuery, models, {
+      keySelector: (model) => [model.name, model.id, model.description || ''],
     });
 
     setFilteredModels(filtered);

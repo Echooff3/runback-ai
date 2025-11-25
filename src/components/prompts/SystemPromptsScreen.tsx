@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { search } from 'fast-fuzzy';
 import { ArrowLeftIcon, PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { getSystemPrompts, saveSystemPrompt, deleteSystemPrompt } from '../../lib/storage/localStorage';
 import type { SystemPrompt } from '../../types';
@@ -12,11 +13,11 @@ export default function SystemPromptsScreen() {
   const [editingPrompt, setEditingPrompt] = useState<SystemPrompt | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const filteredPrompts = prompts.filter(prompt =>
-    prompt.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prompt.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prompt.content.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPrompts = searchTerm.trim()
+    ? search(searchTerm, prompts, {
+        keySelector: (prompt) => [prompt.name, prompt.description || '', prompt.content],
+      })
+    : prompts;
 
   const handleCreateNew = () => {
     const now = new Date().toISOString();

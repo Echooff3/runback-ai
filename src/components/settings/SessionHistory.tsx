@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { search } from 'fast-fuzzy';
 import { 
   TrashIcon, 
   MagnifyingGlassIcon,
@@ -79,24 +80,26 @@ export default function SessionHistory() {
   };
 
   // Filter and search sessions
-  const filteredSessions = sessions.filter(session => {
-    // Search filter
-    const matchesSearch = !searchQuery || 
-      (session.title?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      session.provider.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      session.model?.toLowerCase().includes(searchQuery.toLowerCase());
+  let filteredSessions = sessions;
 
-    // Starred filter
-    const matchesStarred = !filterStarred || session.isStarred;
+  // Starred filter
+  if (filterStarred) {
+    filteredSessions = filteredSessions.filter(session => session.isStarred);
+  }
 
-    // Closed filter
-    const matchesClosed = 
-      filterClosed === 'all' ||
-      (filterClosed === 'open' && !session.isClosed) ||
-      (filterClosed === 'closed' && session.isClosed);
+  // Closed filter
+  if (filterClosed !== 'all') {
+    filteredSessions = filteredSessions.filter(session => 
+      filterClosed === 'open' ? !session.isClosed : session.isClosed
+    );
+  }
 
-    return matchesSearch && matchesStarred && matchesClosed;
-  });
+  // Search filter
+  if (searchQuery.trim()) {
+    filteredSessions = search(searchQuery, filteredSessions, {
+      keySelector: (session) => [session.title || '', session.provider, session.model || ''],
+    });
+  }
 
   const getMessageCount = (session: ChatSession) => {
     return session.messages.length;

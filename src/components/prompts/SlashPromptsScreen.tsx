@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { search } from 'fast-fuzzy';
 import { ArrowLeftIcon, PlusIcon, PencilIcon, TrashIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { getSlashPrompts, saveSlashPrompt, deleteSlashPrompt } from '../../lib/storage/localStorage';
 import type { SlashPrompt } from '../../types';
@@ -12,11 +13,11 @@ export default function SlashPromptsScreen() {
   const [editingPrompt, setEditingPrompt] = useState<SlashPrompt | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const filteredPrompts = prompts.filter(prompt =>
-    prompt.command.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prompt.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prompt.template.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredPrompts = searchTerm.trim()
+    ? search(searchTerm, prompts, {
+        keySelector: (prompt) => [prompt.command, prompt.description, prompt.template],
+      })
+    : prompts;
 
   const handleCreateNew = () => {
     const now = new Date().toISOString();
