@@ -1,5 +1,5 @@
 import { getDBInstance } from './indexedDB';
-import type { ChatSession, Provider } from '../../types';
+import type { ChatSession, Provider, SessionType } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -118,9 +118,10 @@ export async function reopenSession(sessionId: string): Promise<void> {
 /**
  * Create a new session
  */
-export function createNewSession(provider: Provider, model?: string, systemPromptId?: string): ChatSession {
+export function createNewSession(provider: Provider, model?: string, systemPromptId?: string, type: SessionType = 'chat'): ChatSession {
   return {
     id: uuidv4(),
+    type,
     title: undefined,
     messages: [],
     provider,

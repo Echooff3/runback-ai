@@ -4,6 +4,8 @@ export type Theme = 'light' | 'dark' | 'system';
 
 export type Provider = 'openrouter' | 'replicate' | 'fal';
 
+export type SessionType = 'chat' | 'songwriting';
+
 export interface APIConfig {
   provider: Provider;
   apiKey: string;
@@ -107,6 +109,7 @@ export interface ModelParameters {
 
 export interface ChatSession {
   id: string;
+  type: SessionType;
   title?: string;
   messages: ChatMessage[];
   systemPromptId?: string;

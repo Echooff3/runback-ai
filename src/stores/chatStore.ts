@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import type { ChatMessage, ChatSession, AIResponse, Provider, SessionCheckpoint, Attachment } from '../types';
+import type { ChatMessage, ChatSession, AIResponse, Provider, SessionCheckpoint, Attachment, SessionType, ModelParameters } from '../types';
 import { AiPolisherTasks } from '../lib/aiPolisher';
 import { useSettingsStore } from './settingsStore';
 import { 
@@ -28,7 +28,7 @@ interface ChatState {
   // Session management
   loadSessions: () => Promise<void>;
   loadAllSessions: () => Promise<void>;
-  createNewSession: (provider: Provider, model?: string, systemPromptId?: string) => Promise<void>;
+  createNewSession: (provider: Provider, model?: string, systemPromptId?: string, type?: SessionType) => Promise<void>;
   switchSession: (sessionId: string) => void;
   closeSessionTab: (sessionId: string) => Promise<void>;
   reopenSession: (sessionId: string) => Promise<void>;
@@ -37,6 +37,7 @@ interface ChatState {
   toggleStarSession: (sessionId: string) => Promise<void>;
   updateSessionTitle: (sessionId: string, title: string) => Promise<void>;
   updateSessionSettings: (sessionId: string, provider: Provider, model: string) => Promise<void>;
+  updateSessionParameters: (sessionId: string, parameters: ModelParameters) => Promise<void>;
   createCheckpoint: () => Promise<void>;
   
   // Message actions
@@ -108,7 +109,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
   
-  createNewSession: async (provider: Provider, model?: string, systemPromptId?: string) => {
+  createNewSession: async (provider: Provider, model?: string, systemPromptId?: string, type: SessionType = 'chat') => {
     const state = get();
     let currentSessions = state.sessions;
 
@@ -124,7 +125,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
       set({ sessions: currentSessions });
     }
 
-    const newSession = createSession(provider, model, systemPromptId);
+    const newSession = createSession(provider, model, systemPromptId, type);
     await saveSessionToDB(newSession);
     
     set({ 
@@ -291,6 +292,34 @@ export const useChatStore = create<ChatState>((set, get) => ({
       ...session,
       provider,
       model,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Save to DB
+    await saveSessionToDB(updatedSession);
+
+    // Update in memory
+    const updatedSessions = state.sessions.map(s => 
+      s.id === sessionId ? updatedSession : s
+    );
+    
+    set({ 
+      sessions: updatedSessions,
+      currentSession: state.activeSessionId === sessionId 
+        ? updatedSession
+        : state.currentSession
+    });
+  },
+
+  updateSessionParameters: async (sessionId: string, parameters: ModelParameters) => {
+    const state = get();
+    const session = state.sessions.find(s => s.id === sessionId);
+    
+    if (!session) return;
+
+    const updatedSession = {
+      ...session,
+      modelParameters: { ...session.modelParameters, ...parameters },
       updatedAt: new Date().toISOString(),
     };
 

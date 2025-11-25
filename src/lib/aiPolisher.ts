@@ -96,4 +96,71 @@ export class AiPolisherTasks {
       throw error;
     }
   }
+
+  static async songwritingIntellisense(
+    currentLyrics: string,
+    style: string,
+    mood: string,
+    apiKey: string,
+    model: string
+  ): Promise<string> {
+    const client = new OpenRouterClient(apiKey);
+    
+    const systemPrompt = `You are a songwriting assistant. Your task is to suggest a continuation or next line for the lyrics provided by the user.
+    
+    Context:
+    - Musical Style: ${style}
+    - Mood: ${mood}
+    
+    Instructions:
+    - Provide 3 different options for the next line or a short continuation (2-4 lines).
+    - Keep the style and mood in mind.
+    - Do not explain your choices, just list them.
+    - Format the output as a simple list of options. Do not site any sources. Return only the options.
+    `;
+
+    try {
+      const response = await client.sendMessage(model, [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: currentLyrics || "(No lyrics yet, suggest a starting line)" }
+      ]);
+
+      return response.content.trim();
+    } catch (error) {
+      console.error('Failed to get songwriting suggestions:', error);
+      throw error;
+    }
+  }
+
+  static async polishSongwritingStyle(
+    originalStyle: string,
+    apiKey: string,
+    model: string
+  ): Promise<string> {
+    if (!originalStyle.trim()) return '';
+
+    const client = new OpenRouterClient(apiKey);
+    
+    const systemPrompt = `You are an expert at explaining musical ideas, styles, and genres. Your task is to enhance the provided music style prompt.
+    
+    Instructions:
+    - Take the user's input and expand it into a detailed, evocative description of the sound.
+    - Do NOT mention specific artist names or direct references (e.g., do not say "sounds like Van Halen").
+    - Instead, describe the sonic qualities, instrumentation, production techniques, and mood as if the reference artist is unknown.
+    - Include details about the typical writing style, lyrical themes, or common subject matter associated with this style or genre.
+    - Use your vast knowledge of music history and genres to gather context and fill in details.
+    - Return ONLY a single paragraph containing the enhanced musical prompt. Do not include any conversational text.`;
+
+    try {
+      const response = await client.sendMessage(model, [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: originalStyle }
+      ]);
+
+      return response.content.trim();
+    } catch (error) {
+      console.error('Failed to polish songwriting style:', error);
+      throw error;
+    }
+  }
 }

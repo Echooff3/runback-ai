@@ -16,6 +16,7 @@ import AIMessage from './AIMessage';
 import EnhancedChatInput from './EnhancedChatInput';
 import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
+import SongwritingScreen from './SongwritingScreen';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
 
 const CheckpointDivider = ({ checkpoint }: { checkpoint: SessionCheckpoint }) => (
@@ -611,6 +612,18 @@ export default function ChatScreen() {
             </p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (currentSession?.type === 'songwriting') {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col">
+        <SessionTabs 
+          defaultProvider="openrouter"
+          defaultModel={helperModel}
+        />
+        <SongwritingScreen />
       </div>
     );
   }
