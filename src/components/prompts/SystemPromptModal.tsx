@@ -107,11 +107,10 @@ export default function SystemPromptModal({ prompt, onSave, onClose }: SystemPro
               onChange={(e) => setContent(e.target.value)}
               placeholder="Enter the system prompt that will define the AI's behavior..."
               rows={8}
-              maxLength={2000}
               className="w-full resize-none bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {content.length}/2000 characters
+              {content.length} characters
             </p>
           </div>
 
