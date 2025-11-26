@@ -383,7 +383,7 @@ export default function ModelSelectorModal({
                             p-1.5 rounded-full transition-colors
                             ${isHelper 
                               ? 'text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20' 
-                              : 'text-gray-300 dark:text-gray-600 hover:text-yellow-500 hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 focus:opacity-100'
+                              : 'text-gray-400 dark:text-gray-400 hover:text-yellow-500 hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 focus:opacity-100'
                             }
                           `}
                           title={isHelper ? "Current helper model" : "Set as helper model"}
