@@ -13,6 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import type { ChatMessage, MediaAsset } from '../../types';
 import { renderMarkdown } from '../../lib/markdown';
+import { triggerHapticFeedback } from '../../lib/haptics';
 
 interface AIMessageProps {
   message: ChatMessage;
@@ -135,8 +136,8 @@ export default function AIMessage({
       <div className="max-w-[80%] w-full">
         <div className={`rounded-lg px-4 py-3 border ${providerColor} relative`}>
           <button 
-            onClick={onToggleCollapse}
-            className="absolute top-2 right-2 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded opacity-50 hover:opacity-100 transition-opacity z-10"
+            onClick={() => { triggerHapticFeedback(); onToggleCollapse(); }}
+            className="absolute top-2 right-2 p-1 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 active:scale-95 rounded opacity-50 hover:opacity-100 transition-all duration-100 z-10"
             title={isCollapsed ? "Expand response" : "Collapse response"}
           >
             {isCollapsed ? <ChevronDownIcon className="w-4 h-4" /> : <ChevronUpIcon className="w-4 h-4" />}
@@ -189,8 +190,8 @@ export default function AIMessage({
                         loading="lazy"
                       />
                       <button
-                        onClick={() => handleDownload(asset)}
-                        className="absolute top-2 right-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => { triggerHapticFeedback(); handleDownload(asset); }}
+                        className="absolute top-2 right-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 active:bg-gray-100 dark:active:bg-gray-700 active:scale-95 transition-all duration-100"
                         title="Download image"
                       >
                         <ArrowDownTrayIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -207,8 +208,8 @@ export default function AIMessage({
                         Your browser does not support the video tag.
                       </video>
                       <button
-                        onClick={() => handleDownload(asset)}
-                        className="absolute top-2 right-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => { triggerHapticFeedback(); handleDownload(asset); }}
+                        className="absolute top-2 right-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 active:bg-gray-100 dark:active:bg-gray-700 active:scale-95 transition-all duration-100"
                         title="Download video"
                       >
                         <ArrowDownTrayIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -225,8 +226,8 @@ export default function AIMessage({
                         Your browser does not support the audio tag.
                       </audio>
                       <button
-                        onClick={() => handleDownload(asset)}
-                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+                        onClick={() => { triggerHapticFeedback(); handleDownload(asset); }}
+                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100"
                         title="Download audio"
                       >
                         <ArrowDownTrayIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
@@ -292,9 +293,9 @@ export default function AIMessage({
           {hasMultipleResponses && (
             <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => onNavigateResponse('prev')}
+                onClick={() => { if (canGoBack) { triggerHapticFeedback(); onNavigateResponse('prev'); } }}
                 disabled={!canGoBack}
-                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
                 title="Previous response"
               >
                 <ChevronLeftIcon className="w-5 h-5" />
@@ -303,9 +304,9 @@ export default function AIMessage({
                 Response {currentIndex + 1} of {responses.length}
               </span>
               <button
-                onClick={() => onNavigateResponse('next')}
+                onClick={() => { if (canGoForward) { triggerHapticFeedback(); onNavigateResponse('next'); } }}
                 disabled={!canGoForward}
-                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
                 title="Next response"
               >
                 <ChevronRightIcon className="w-5 h-5" />
@@ -345,8 +346,8 @@ export default function AIMessage({
           <div className="flex items-center gap-1">
             {onUpdateNote && !isEditingNote && !currentResponse.notes && (
               <button
-                onClick={() => setIsEditingNote(true)}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                onClick={() => { triggerHapticFeedback(); setIsEditingNote(true); }}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100"
                 title="Add note"
               >
                 <DocumentTextIcon className="w-5 h-5" />
@@ -354,23 +355,23 @@ export default function AIMessage({
             )}
             {onEdit && (
               <button
-                onClick={onEdit}
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                onClick={() => { triggerHapticFeedback(); onEdit(); }}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100"
                 title="Edit prompt"
               >
                 <PencilSquareIcon className="w-5 h-5" />
               </button>
             )}
             <button
-              onClick={onRegenerate}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              onClick={() => { triggerHapticFeedback(); onRegenerate(); }}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100"
               title="Regenerate response"
             >
               <ArrowPathIcon className="w-5 h-5" />
             </button>
             <button
-              onClick={onCopy}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              onClick={() => { triggerHapticFeedback(); onCopy(); }}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100"
               title="Copy response"
             >
               <ClipboardIcon className="w-5 h-5" />
