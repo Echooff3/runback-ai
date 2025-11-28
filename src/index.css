@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Tailwind CSS v4 requires dark mode to be configured via @variant directive */
+@variant dark (&:is(.dark *));
+
 html {
   font-size: 12px;
 }
