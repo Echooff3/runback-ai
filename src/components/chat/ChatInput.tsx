@@ -32,7 +32,7 @@ export default function ChatInput({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
     }
@@ -56,13 +56,13 @@ export default function ChatInput({
           onClick={handleSend}
           disabled={disabled || !message.trim()}
           className="px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-          title="Send message (Enter)"
+          title="Send message (Ctrl+Enter)"
         >
           <PaperAirplaneIcon className="w-5 h-5" />
         </button>
       </div>
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-        Press Enter to send, Shift+Enter for new line
+        Press Ctrl+Enter to send, Enter for new line
       </p>
     </div>
   );
