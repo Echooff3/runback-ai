@@ -293,7 +293,7 @@ export default function AIMessage({
           {hasMultipleResponses && (
             <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => { triggerHapticFeedback(); onNavigateResponse('prev'); }}
+                onClick={() => { if (canGoBack) { triggerHapticFeedback(); onNavigateResponse('prev'); } }}
                 disabled={!canGoBack}
                 className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
                 title="Previous response"
@@ -304,7 +304,7 @@ export default function AIMessage({
                 Response {currentIndex + 1} of {responses.length}
               </span>
               <button
-                onClick={() => { triggerHapticFeedback(); onNavigateResponse('next'); }}
+                onClick={() => { if (canGoForward) { triggerHapticFeedback(); onNavigateResponse('next'); } }}
                 disabled={!canGoForward}
                 className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 active:bg-gray-300 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
                 title="Next response"
