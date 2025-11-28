@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { ArrowPathIcon, ClipboardIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import type { ChatMessage } from '../../types';
 import { renderMarkdown } from '../../lib/markdown';
+import { triggerHapticFeedback } from '../../lib/haptics';
 
 interface UserMessageProps {
   message: ChatMessage;
@@ -75,12 +76,12 @@ export default function UserMessage({ message, onRerun, onCopy, onToggleCollapse
       <div className="max-w-[80%] flex flex-col items-end">
         <div 
           className={`bg-indigo-600 text-white rounded-lg px-4 py-3 relative ${isCollapsed ? 'cursor-pointer' : ''}`}
-          onClick={isCollapsed ? onToggleCollapse : undefined}
+          onClick={isCollapsed ? () => { triggerHapticFeedback(); onToggleCollapse(); } : undefined}
         >
           {!isCollapsed && (
             <button 
-              onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}
-              className="absolute top-2 right-2 p-1 hover:bg-indigo-500 rounded opacity-50 hover:opacity-100 transition-opacity"
+              onClick={(e) => { e.stopPropagation(); triggerHapticFeedback(); onToggleCollapse(); }}
+              className="absolute top-2 right-2 p-1 hover:bg-indigo-500 active:bg-indigo-400 active:scale-95 rounded opacity-50 hover:opacity-100 transition-all duration-100"
               title="Collapse message"
             >
               <ChevronUpIcon className="w-4 h-4" />
@@ -109,15 +110,15 @@ export default function UserMessage({ message, onRerun, onCopy, onToggleCollapse
               </span>
             )}
             <button
-              onClick={onRerun}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              onClick={() => { triggerHapticFeedback(); onRerun(); }}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100"
               title="Re-run prompt"
             >
               <ArrowPathIcon className="w-5 h-5" />
             </button>
             <button
-              onClick={onCopy}
-              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+              onClick={() => { triggerHapticFeedback(); onCopy(); }}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600 active:scale-95 rounded transition-all duration-100"
               title="Copy message"
             >
               <ClipboardIcon className="w-5 h-5" />
