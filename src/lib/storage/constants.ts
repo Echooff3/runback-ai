@@ -8,9 +8,20 @@ export const STORAGE_KEYS = {
   APP_VERSION: 'runback_app_version',
   LAST_PROVIDER: 'runback_last_provider',
   LAST_MODEL: 'runback_last_model',
+  HELPER_MODEL: 'runback_helper_model',
   ONBOARDING_COMPLETE: 'runback_onboarding_complete',
   STORAGE_VERSION: 'runback_storage_version',
+  ACTIVE_SESSION_ID: 'runback_active_session_id',
 } as const;
 
 export const CURRENT_STORAGE_VERSION = 1;
 export const APP_VERSION = '1.0.0';
+
+// IndexedDB Configuration
+export const INDEXEDDB_CONFIG = {
+  DB_NAME: 'runback_db',
+  DB_VERSION: 1,
+  STORES: {
+    CHAT_SESSIONS: 'chat_sessions',
+  },
+} as const;

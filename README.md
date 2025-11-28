@@ -8,9 +8,17 @@ Swiss army knife LLM tool tightly integrated with [OpenRouter.ai](https://openro
 
 ---
 
-## ✨ Current Status: Phase 1 Complete
+## ✨ Current Status: Phase 2 In Progress
 
 ✅ **Phase 1: Foundation** - Settings, Theme Support, API Key Management
+🚧 **Phase 2: Chat Core** - Provider Integration, Enhanced Model Selection
+
+### Recent Updates:
+- 🆕 **Enhanced Model Selector** - Full-screen modal with fuzzy search and dynamic model fetching
+  - Search through 100+ models from OpenRouter, Replicate, and Fal.ai
+  - Touch-friendly 44px row heights
+  - Real-time model fetching from provider APIs
+  - Graceful fallbacks when APIs are unavailable
 
 ### Implemented Features:
 - 🌓 **Dark/Light/System Theme** - Full Tailwind CSS v4 implementation
@@ -18,6 +26,7 @@ Swiss army knife LLM tool tightly integrated with [OpenRouter.ai](https://openro
 - 💾 **LocalStorage Persistence** - All data stored locally in browser
 - 🎨 **Mobile-Responsive Design** - Optimized for 320-428px viewports
 - 🔒 **Privacy-First** - No backend, no tracking, data never leaves your device
+- 🔍 **Smart Model Selection** - Fuzzy search through available models
 
 ---
 
@@ -250,3 +259,5 @@ export default defineConfig([
   },
 ])
 ```
+
+⚠️ **Disclaimer:** This is a purpose-built app for hobbyists. Please proceed only if you know what you are doing.

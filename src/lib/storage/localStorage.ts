@@ -1,5 +1,7 @@
 import { STORAGE_KEYS, CURRENT_STORAGE_VERSION } from './constants';
 import type { Theme, APIConfig, SystemPrompt, SlashPrompt } from '../../types';
+import { DEFAULT_SYSTEM_PROMPTS, DEFAULT_SLASH_PROMPTS } from '../defaults/prompts';
+import { v4 as uuidv4 } from 'uuid';
 
 // Theme operations
 export function saveTheme(theme: Theme): void {
@@ -47,7 +49,22 @@ export function saveSystemPrompt(prompt: SystemPrompt): void {
 
 export function getSystemPrompts(): SystemPrompt[] {
   const data = localStorage.getItem(STORAGE_KEYS.SYSTEM_PROMPTS);
-  return data ? JSON.parse(data) : [];
+  if (data) {
+    return JSON.parse(data);
+  }
+  
+  // Initialize with default prompts if empty
+  const now = new Date().toISOString();
+  const defaultPrompts: SystemPrompt[] = DEFAULT_SYSTEM_PROMPTS.map(prompt => ({
+    ...prompt,
+    id: uuidv4(),
+    createdAt: now,
+    updatedAt: now,
+    usageCount: 0,
+  }));
+  
+  localStorage.setItem(STORAGE_KEYS.SYSTEM_PROMPTS, JSON.stringify(defaultPrompts));
+  return defaultPrompts;
 }
 
 export function deleteSystemPrompt(id: string): void {
@@ -69,7 +86,22 @@ export function saveSlashPrompt(prompt: SlashPrompt): void {
 
 export function getSlashPrompts(): SlashPrompt[] {
   const data = localStorage.getItem(STORAGE_KEYS.SLASH_PROMPTS);
-  return data ? JSON.parse(data) : [];
+  if (data) {
+    return JSON.parse(data);
+  }
+  
+  // Initialize with default prompts if empty
+  const now = new Date().toISOString();
+  const defaultPrompts: SlashPrompt[] = DEFAULT_SLASH_PROMPTS.map(prompt => ({
+    ...prompt,
+    id: uuidv4(),
+    createdAt: now,
+    updatedAt: now,
+    usageCount: 0,
+  }));
+  
+  localStorage.setItem(STORAGE_KEYS.SLASH_PROMPTS, JSON.stringify(defaultPrompts));
+  return defaultPrompts;
 }
 
 export function deleteSlashPrompt(id: string): void {
@@ -105,6 +137,68 @@ export function saveLastModel(model: string): void {
 
 export function getLastModel(): string | null {
   return localStorage.getItem(STORAGE_KEYS.LAST_MODEL);
+}
+
+export function saveHelperModel(model: string): void {
+  localStorage.setItem(STORAGE_KEYS.HELPER_MODEL, model);
+}
+
+export function getHelperModel(): string | null {
+  return localStorage.getItem(STORAGE_KEYS.HELPER_MODEL);
+}
+
+
+// Model Parameters operations (unique per provider + model)
+const MODEL_PARAMS_KEY_PREFIX = 'model_params_';
+
+export function saveModelParameters(modelId: string, provider: string, parameters: Record<string, any>): void {
+  try {
+    const key = MODEL_PARAMS_KEY_PREFIX + provider + '_' + modelId;
+    const data = {
+      parameters,
+      provider,
+      modelId,
+      timestamp: Date.now(),
+    };
+    console.log(`[localStorage] Saving parameters for ${key}:`, JSON.stringify(data, null, 2));
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {
+    console.error('Failed to save model parameters:', error);
+  }
+}
+
+export function getModelParameters(modelId: string, provider: string): Record<string, any> | null {
+  try {
+    const key = MODEL_PARAMS_KEY_PREFIX + provider + '_' + modelId;
+    const data = localStorage.getItem(key);
+    
+    console.log(`[localStorage] Loading parameters for ${key}, found:`, data ? 'yes' : 'no');
+    
+    if (!data) return null;
+    
+    const parsed = JSON.parse(data);
+    console.log(`[localStorage] Parsed parameters:`, JSON.stringify(parsed.parameters, null, 2));
+    return parsed.parameters || null;
+  } catch (error) {
+    console.error('Failed to load model parameters:', error);
+    return null;
+  }
+}
+
+export function clearModelParameters(modelId?: string, provider?: string): void {
+  try {
+    if (modelId && provider) {
+      const key = MODEL_PARAMS_KEY_PREFIX + provider + '_' + modelId;
+      localStorage.removeItem(key);
+    } else {
+      // Clear all model parameters
+      Object.keys(localStorage)
+        .filter(key => key.startsWith(MODEL_PARAMS_KEY_PREFIX))
+        .forEach(key => localStorage.removeItem(key));
+    }
+  } catch (error) {
+    console.error('Failed to clear model parameters:', error);
+  }
 }
 
 // Storage migration

@@ -4,6 +4,8 @@ export type Theme = 'light' | 'dark' | 'system';
 
 export type Provider = 'openrouter' | 'replicate' | 'fal';
 
+export type SessionType = 'chat' | 'songwriting';
+
 export interface APIConfig {
   provider: Provider;
   apiKey: string;
@@ -47,6 +49,22 @@ export interface SlashPrompt {
   isDefault: boolean;
 }
 
+export type QueueStatus = 'pending' | 'queued' | 'in_progress' | 'completed' | 'failed';
+
+export interface MediaAsset {
+  type: 'image' | 'video' | 'audio';
+  url: string;
+  contentType?: string;
+  filename?: string;
+}
+
+export interface Attachment {
+  type: 'image';
+  content: string; // base64 or url
+  mimeType?: string;
+  name?: string;
+}
+
 export interface AIResponse {
   id: string;
   content: string;
@@ -54,6 +72,12 @@ export interface AIResponse {
   model?: string;
   timestamp: string;
   generationNumber: number;
+  status?: QueueStatus;
+  requestId?: string;
+  logs?: string[];
+  mediaAssets?: MediaAsset[];
+  notes?: string;
+  isCollapsed?: boolean;
   metadata?: {
     tokenCount?: number;
     responseTime?: number;
@@ -65,11 +89,13 @@ export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  attachments?: Attachment[];
   timestamp: string;
   responses?: AIResponse[];
   currentResponseIndex?: number;
   provider?: Provider;
   model?: string;
+  isCollapsed?: boolean;
   metadata?: {
     tokenCount?: number;
     responseTime?: number;
@@ -77,12 +103,29 @@ export interface ChatMessage {
   };
 }
 
+export interface ModelParameters {
+  [key: string]: any;
+}
+
 export interface ChatSession {
   id: string;
+  type: SessionType;
+  title?: string;
   messages: ChatMessage[];
   systemPromptId?: string;
   provider: Provider;
   model?: string;
+  modelParameters?: ModelParameters;
   createdAt: string;
   updatedAt: string;
+  isStarred: boolean;
+  isClosed: boolean;
+  checkpoints?: SessionCheckpoint[];
+}
+
+export interface SessionCheckpoint {
+  id: string;
+  summary: string;
+  lastMessageId: string;
+  timestamp: string;
 }
