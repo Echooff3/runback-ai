@@ -329,7 +329,8 @@ export default function ChatScreen() {
         try {
           setLoading(true);
           await createCheckpoint();
-        } catch {
+        } catch (err) {
+          console.error('Failed to create checkpoint:', err);
           setError('Failed to create checkpoint');
         } finally {
           setLoading(false);
@@ -364,7 +365,9 @@ export default function ChatScreen() {
     setLoadingStatus('connecting');
     setLoading(true);
     
-    // Create new abort controller for this request
+    // Track cancellation state for this request
+    // Note: The API client doesn't support abort signals yet, so cancellation
+    // is handled at the UI level by removing the pending message from history
     abortControllerRef.current = new AbortController();
 
     try {
@@ -398,7 +401,7 @@ export default function ChatScreen() {
           attachments,
         });
 
-        // Check if request was cancelled
+        // Check if request was cancelled while waiting for response
         if (abortControllerRef.current?.signal.aborted) {
           return;
         }
@@ -413,8 +416,8 @@ export default function ChatScreen() {
         addAIResponse(userMessage.id, response);
       }
     } catch (err) {
-      // Don't show error if request was cancelled
-      if (err instanceof Error && err.name === 'AbortError') {
+      // Check if request was cancelled - don't show error in that case
+      if (abortControllerRef.current?.signal.aborted) {
         return;
       }
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
