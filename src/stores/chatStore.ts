@@ -47,6 +47,7 @@ interface ChatState {
   updateAIResponseNote: (userMessageId: string, responseId: string, note: string) => void;
   setCurrentResponseIndex: (messageId: string, index: number) => void;
   toggleMessageCollapse: (messageId: string) => void;
+  removeMessage: (messageId: string) => void;
   
   // Polling management
   startPolling: (responseId: string, interval: ReturnType<typeof setInterval>) => void;
@@ -582,6 +583,33 @@ export const useChatStore = create<ChatState>((set, get) => ({
       s.id === updatedSession.id ? updatedSession : s
     );
     set({ sessions: updatedSessions });
+  },
+
+  removeMessage: (messageId: string) => {
+    const state = get();
+    if (!state.currentSession) return;
+
+    const messages = state.currentSession.messages.filter(msg => msg.id !== messageId);
+
+    const updatedSession = {
+      ...state.currentSession,
+      messages,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Update in memory
+    set({ currentSession: updatedSession });
+
+    // Update sessions array
+    const updatedSessions = state.sessions.map(s =>
+      s.id === updatedSession.id ? updatedSession : s
+    );
+    set({ sessions: updatedSessions });
+
+    // Save to DB (async, don't wait)
+    saveSessionToDB(updatedSession).catch(err =>
+      console.error('Failed to save session:', err)
+    );
   },
 
   startPolling: (responseId: string, interval: ReturnType<typeof setInterval>) => {
