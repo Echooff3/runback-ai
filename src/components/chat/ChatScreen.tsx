@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Cog6ToothIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,6 +17,7 @@ import EnhancedChatInput from './EnhancedChatInput';
 import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
 import SongwritingScreen from './SongwritingScreen';
+import LoadingIndicator from './LoadingIndicator';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
 
 const CheckpointDivider = ({ checkpoint }: { checkpoint: SessionCheckpoint }) => (
@@ -42,6 +43,7 @@ export default function ChatScreen() {
     updateAIResponseNote,
     setCurrentResponseIndex,
     toggleMessageCollapse,
+    removeMessage,
     startPolling,
     stopPolling,
     stopAllPolling,
@@ -58,10 +60,14 @@ export default function ChatScreen() {
   const [musicDraft, setMusicDraft] = useState<{ style: string; lyrics: string } | null>(null);
   const [fluxDraft, setFluxDraft] = useState<string>('');
   const [modelContextLength, setModelContextLength] = useState<number>(0);
+  const [loadingStatus, setLoadingStatus] = useState<'connecting' | 'waiting' | 'streaming'>('connecting');
+  const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
+  const [pendingMessageId, setPendingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const visibilityMapRef = useRef<Map<string, boolean>>(new Map());
   const isRestoringFromSessionRef = useRef(false);
   const lastSessionIdRef = useRef<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Debug logging for parameter changes
   useEffect(() => {
@@ -293,6 +299,27 @@ export default function ChatScreen() {
     return contextMessages;
   };
 
+  // Cancel handler for loading requests
+  const handleCancelRequest = useCallback(() => {
+    // Abort any in-flight requests
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    // Remove the pending message from chat history since response was incomplete
+    if (pendingMessageId) {
+      removeMessage(pendingMessageId);
+      setPendingMessageId(null);
+    }
+
+    // Reset loading state
+    setLoading(false);
+    setLoadingStatus('connecting');
+    setLoadingStartTime(null);
+    clearError();
+  }, [pendingMessageId, removeMessage, setLoading, clearError]);
+
   const handleSendMessage = async (content: string, systemPromptContent?: string, attachments?: Attachment[]) => {
     if (!currentSession || !selectedModel) return;
 
@@ -303,6 +330,7 @@ export default function ChatScreen() {
           setLoading(true);
           await createCheckpoint();
         } catch (err) {
+          console.error('Failed to create checkpoint:', err);
           setError('Failed to create checkpoint');
         } finally {
           setLoading(false);
@@ -330,11 +358,22 @@ export default function ChatScreen() {
     }
 
     const userMessage = addUserMessage(content, attachments);
+    
+    // Set up loading state with tracking
+    setPendingMessageId(userMessage.id);
+    setLoadingStartTime(Date.now());
+    setLoadingStatus('connecting');
     setLoading(true);
+    
+    // Track cancellation state for this request
+    // Note: The API client doesn't support abort signals yet, so cancellation
+    // is handled at the UI level by removing the pending message from history
+    abortControllerRef.current = new AbortController();
 
     try {
       // Use queue API for FAL, regular API for others
       if (selectedProvider === 'fal') {
+        setLoadingStatus('waiting');
         await handleFalQueueSubmission(userMessage, content);
       } else {
         const aiClient = getAIClient();
@@ -350,6 +389,9 @@ export default function ChatScreen() {
           }
         }
 
+        // Update status to waiting before API call
+        setLoadingStatus('waiting');
+
         const response = await aiClient.sendMessage({
           provider: selectedProvider,
           model: selectedModel,
@@ -359,6 +401,14 @@ export default function ChatScreen() {
           attachments,
         });
 
+        // Check if request was cancelled while waiting for response
+        if (abortControllerRef.current?.signal.aborted) {
+          return;
+        }
+
+        // Update status to streaming when we get data
+        setLoadingStatus('streaming');
+
         // Update generation number based on existing responses
         const existingResponses = userMessage.responses?.length || 0;
         response.generationNumber = existingResponses + 1;
@@ -366,10 +416,18 @@ export default function ChatScreen() {
         addAIResponse(userMessage.id, response);
       }
     } catch (err) {
+      // Check if request was cancelled - don't show error in that case
+      if (abortControllerRef.current?.signal.aborted) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred';
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setPendingMessageId(null);
+      setLoadingStartTime(null);
+      setLoadingStatus('connecting');
+      abortControllerRef.current = null;
     }
   };
 
@@ -741,15 +799,11 @@ export default function ChatScreen() {
 
         {/* Loading indicator */}
         {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg px-4 py-3">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-              </div>
-            </div>
-          </div>
+          <LoadingIndicator
+            status={loadingStatus}
+            onCancel={handleCancelRequest}
+            startTime={loadingStartTime ?? undefined}
+          />
         )}
 
         {/* Error message */}
