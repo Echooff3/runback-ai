@@ -156,7 +156,7 @@ export default function FluxGenerationInput({
         {/* Slash Suggestions Dropdown */}
         {showSlashSuggestions && slashSuggestions.length > 0 && (
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
               <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Slash Commands</span>
               <Link
                 to="/slash-prompts"
@@ -198,7 +198,7 @@ export default function FluxGenerationInput({
         />
         
         {showAdvanced && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-750 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg border border-gray-100 dark:border-gray-700">
             <div>
               <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Image Size</label>
               <select
