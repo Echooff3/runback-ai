@@ -5,27 +5,31 @@ import { Link } from 'react-router-dom';
 import { getSlashPrompts, saveSlashPrompt } from '../../lib/storage/localStorage';
 import type { SlashPrompt } from '../../types';
 
-interface FluxGenerationInputProps {
+interface Flux2GenerationInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
   initialPrompt?: string;
 }
 
 type ImageSize = 'square_hd' | 'square' | 'portrait_4_3' | 'portrait_16_9' | 'landscape_4_3' | 'landscape_16_9';
-type OutputFormat = 'jpeg' | 'png';
+type OutputFormat = 'jpeg' | 'png' | 'webp';
 type Acceleration = 'none' | 'regular' | 'high';
 
-export default function FluxGenerationInput({ 
+export default function Flux2GenerationInput({ 
   onSend, 
   disabled = false,
   initialPrompt = ''
-}: FluxGenerationInputProps) {
+}: Flux2GenerationInputProps) {
   const [prompt, setPrompt] = useState('');
   const [imageSize, setImageSize] = useState<ImageSize>('square_hd');
   const [numImages, setNumImages] = useState(1);
   const [enableSafetyChecker, setEnableSafetyChecker] = useState(false);
-  const [outputFormat, setOutputFormat] = useState<OutputFormat>('jpeg');
-  const [acceleration, setAcceleration] = useState<Acceleration>('none');
+  const [outputFormat, setOutputFormat] = useState<OutputFormat>('png');
+  const [acceleration, setAcceleration] = useState<Acceleration>('regular');
+  const [enablePromptExpansion, setEnablePromptExpansion] = useState(false);
+  const [guidanceScale, setGuidanceScale] = useState(2.5);
+  const [numInferenceSteps, setNumInferenceSteps] = useState(28);
+  const [seed, setSeed] = useState<number | undefined>(undefined);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showSlashSuggestions, setShowSlashSuggestions] = useState(false);
   const [slashSuggestions, setSlashSuggestions] = useState<SlashPrompt[]>([]);
@@ -124,16 +128,23 @@ export default function FluxGenerationInput({
   const handleSend = () => {
     if (!prompt.trim() || disabled) return;
 
-    const payload = JSON.stringify({
+    const payload: Record<string, any> = {
       prompt: prompt.trim(),
       image_size: imageSize,
       num_images: numImages,
       enable_safety_checker: enableSafetyChecker,
       output_format: outputFormat,
-      acceleration: acceleration
-    });
+      acceleration: acceleration,
+      enable_prompt_expansion: enablePromptExpansion,
+      guidance_scale: guidanceScale,
+      num_inference_steps: numInferenceSteps
+    };
+
+    if (seed !== undefined) {
+      payload.seed = seed;
+    }
     
-    onSend(payload);
+    onSend(JSON.stringify(payload));
     setPrompt('');
   };
 
@@ -143,7 +154,7 @@ export default function FluxGenerationInput({
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
             <PhotoIcon className="w-5 h-5" />
-            <span className="text-sm font-medium">Flux Image Generation</span>
+            <span className="text-sm font-medium">Flux 2 Image Generation</span>
           </div>
           <button 
             onClick={() => setShowAdvanced(!showAdvanced)}
@@ -239,6 +250,7 @@ export default function FluxGenerationInput({
               >
                 <option value="jpeg">JPEG</option>
                 <option value="png">PNG</option>
+                <option value="webp">WebP</option>
               </select>
             </div>
 
@@ -256,6 +268,45 @@ export default function FluxGenerationInput({
               </select>
             </div>
 
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Guidance Scale</label>
+              <input
+                type="number"
+                min={0}
+                max={20}
+                step={0.1}
+                value={guidanceScale}
+                onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
+                disabled={disabled}
+                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Inference Steps</label>
+              <input
+                type="number"
+                min={4}
+                max={50}
+                value={numInferenceSteps}
+                onChange={(e) => setNumInferenceSteps(parseInt(e.target.value))}
+                disabled={disabled}
+                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Seed (Optional)</label>
+              <input
+                type="number"
+                value={seed ?? ''}
+                onChange={(e) => setSeed(e.target.value ? parseInt(e.target.value) : undefined)}
+                placeholder="Random"
+                disabled={disabled}
+                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
             <div className="flex items-center mt-2">
               <input
                 type="checkbox"
@@ -267,6 +318,20 @@ export default function FluxGenerationInput({
               />
               <label htmlFor="safety-checker" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
                 Enable Safety Checker
+              </label>
+            </div>
+
+            <div className="flex items-center mt-2">
+              <input
+                type="checkbox"
+                id="prompt-expansion"
+                checked={enablePromptExpansion}
+                onChange={(e) => setEnablePromptExpansion(e.target.checked)}
+                disabled={disabled}
+                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+              />
+              <label htmlFor="prompt-expansion" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                Enable Prompt Expansion
               </label>
             </div>
           </div>
