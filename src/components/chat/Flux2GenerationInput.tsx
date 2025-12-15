@@ -128,7 +128,7 @@ export default function Flux2GenerationInput({
   const handleSend = () => {
     if (!prompt.trim() || disabled) return;
 
-    const payload: Record<string, any> = {
+    const payload: Record<string, string | number | boolean> = {
       prompt: prompt.trim(),
       image_size: imageSize,
       num_images: numImages,
