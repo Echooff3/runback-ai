@@ -2,6 +2,49 @@
 
 ## Recent Updates
 
+### ✅ Phase 4 Import/Export (November 2025)
+Implemented Import/Export functionality for backing up and restoring all app data except API keys.
+
+**Key Features:**
+- 📤 **Export Data**: Download all app data as JSON file (excludes API keys for security)
+- 📥 **Import Data**: Restore from backup with two modes: merge or replace
+- 🔒 **Security**: API keys are never included in exports
+- ✅ **Validation**: Comprehensive file format validation before import
+- 🔄 **Merge Mode**: Add new items from backup, keeping existing items with same ID
+- 🗑️ **Replace Mode**: Clear all existing data before importing
+
+**Exported Data:**
+- Theme preference
+- Helper model setting
+- System prompts (with all metadata)
+- Slash prompts (with all metadata)
+- Chat sessions (from IndexedDB)
+- Last provider/model settings
+- Active prompt ID
+
+**NOT Exported (Security):**
+- OpenRouter API key
+- Replicate API key
+- Fal.ai API key
+
+**Primary Files:** `lib/storage/exportImport.ts`, `components/settings/ImportExport.tsx`, `components/settings/SettingsScreen.tsx`
+
+---
+
+### ✅ Phase 3 Prompt Management Completion (November 2025)
+Implemented full System Prompt and Slash Prompt management.
+
+**Key Features:**
+- 🗂️ System Prompts CRUD (create, edit, delete, usage counts, default protection)
+- ⚙️ Apply System Prompt in Chat (badge selector, removal button)
+- 💬 Slash Prompts CRUD with validation and dynamic variable extraction
+- 🔤 Slash Command Autocomplete (arrow navigation, Enter/Tab to apply, Esc to dismiss)
+- 🧩 Dynamic Templates: `{variable}` prompts & `<input>` free-text replacement
+- 🌱 Default Seeding via `defaults/prompts.ts` on first load
+- 🔒 Default Prompt Protection (cannot delete; badge displayed)
+
+**Primary Files:** `SystemPromptsScreen.tsx`, `SystemPromptModal.tsx`, `SlashPromptsScreen.tsx`, `SlashPromptModal.tsx`, `EnhancedChatInput.tsx`, `lib/defaults/prompts.ts`, `lib/storage/localStorage.ts`
+
 ### ✨ Helper Model & AI Polisher (November 2025)
 Implemented a "Helper Model" setting and an AI-powered "Polisher" for music generation prompts.
 
@@ -328,14 +371,14 @@ App
 ## Implementation Phases
 
 ### Phase 1: Foundation (2-3 weeks)
-- [ ] Vite + React/Vue + TypeScript setup
-- [ ] Tailwind CSS with dark mode configuration
-- [ ] Basic routing and navigation
-- [ ] Theme toggle (Light/Dark/System)
-- [ ] Settings screen with API key management
-- [ ] LocalStorage persistence layer
-- [ ] Mobile-responsive layout
-- [ ] GitHub Actions CI/CD
+- [x] Vite + React + TypeScript setup
+- [x] Tailwind CSS with dark mode configuration
+- [x] Basic routing and navigation
+- [x] Theme toggle (Light/Dark/System)
+- [x] Settings screen with API key management
+- [x] LocalStorage persistence layer
+- [x] Mobile-responsive layout
+- [ ] GitHub Actions CI/CD (workflow artifact finalization pending)
 
 ### Phase 2: Chat Core (2-3 weeks)
 - [x] Chat interface UI
@@ -345,7 +388,7 @@ App
 - [x] Re-run prompt functionality ⭐
 - [x] Response history navigation ⭐
 - [x] Loading states and error handling
-- [x] **Multi-tab chat sessions** ⭐
+- [x] **Multi-tab chat sessions** ⭐ NEW
 - [x] **Persistent session storage (IndexedDB)** ⭐
 - [x] **Starred sessions with delete protection** ⭐
 - [x] **Session history management** ⭐
@@ -355,14 +398,15 @@ App
 - [x] **Real-time status updates with logs** ⭐ NEW
 
 ### Phase 3: Prompt Management (2-3 weeks)
-- [ ] System prompts CRUD
-- [ ] Slash prompts CRUD
-- [ ] Default prompts seeding
-- [ ] Apply system prompt in chat
-- [ ] Slash command autocomplete
-- [ ] Import/Export functionality
+- [x] System prompts CRUD
+- [x] Slash prompts CRUD
+- [x] Default prompts seeding
+- [x] Apply system prompt in chat
+- [x] Slash command autocomplete
+- [x] Import/Export functionality ⭐ (moved from Phase 4)
 
 ### Phase 4: Polish & Optimization (1-2 weeks)
+- [x] Import/Export feature implementation ⭐ NEW
 - [ ] UI/UX refinements
 - [ ] Performance optimization
 - [ ] Accessibility (WCAG AA)
@@ -576,6 +620,17 @@ docker run -p 8080:80 runback-ai
 - [ ] Documentation complete
 - [ ] GitHub Actions builds runback-ai.zip ⭐
 
+### Additional Implemented Features (added to checklist)
+- [x] Helper Model setting & AI Polisher (music prompt polisher) implemented (Settings + Polisher tasks)
+- [x] FAL queue-based async processing implemented (submit/status/result)
+- [x] Viewport-aware polling (IntersectionObserver; 10s interval) implemented
+- [x] Media asset rendering (image/video/audio) with native controls and download support implemented
+- [x] Real-time status badges & logs for queued requests implemented
+- [x] Enhanced Model Selector (full-screen modal, fuzzy search, dynamic fetching) implemented
+- [x] Provider-specific model parameter storage & UI (provider-scoped keys) implemented
+- [x] Session History management UI in Settings implemented (search, filter, reopen, delete protections)
+- [x] **Import/Export functionality** ⭐ NEW - Export all app data (except API keys) to JSON, import with merge or replace mode
+
 ---
 
 ## Quick Start Development
@@ -776,7 +831,7 @@ Database: runback_db (v1)
 
 **Managing History**:
 1. User goes to Settings → Chat History
-2. Can search for sessions by keyword
+2. Can search for sessions by title
 3. Can filter by starred, open, or closed
 4. Can star/unstar any session
 5. Can delete unstarred sessions (with confirmation)
@@ -787,7 +842,7 @@ Database: runback_db (v1)
 ## Recent Implementation: FAL Queue API Integration (November 2025)
 
 ### Overview
-Implemented FAL's queue-based API for asynchronous request processing with real-time status updates, viewport-aware polling, and media asset display. This enables support for long-running FAL models (image generation, video, audio) with a non-blocking user experience.
+Implemented FAL's queue-based API for asynchronous request processing with real-time status updates, viewport-aware polling, and media asset display. This enables support for long-running FAL models ([...]
 
 ### Features Implemented
 
@@ -1075,7 +1130,7 @@ interface MediaAsset {
 ## Recent Update: Provider-Specific Model Parameters (November 2025)
 
 ### Overview
-Updated HTML form generation and model parameter storage to be unique per **provider + model** combination, not just model ID. This allows different providers to have different parameter configurations for models with the same name.
+Updated HTML form generation and model parameter storage to be unique per **provider + model** combination, not just model ID. This allows different providers to have different parameter configuration[...]
 
 ### Changes Made
 
