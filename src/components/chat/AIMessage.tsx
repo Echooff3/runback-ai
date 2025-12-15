@@ -14,6 +14,7 @@ import {
 import type { ChatMessage, MediaAsset } from '../../types';
 import { renderMarkdown } from '../../lib/markdown';
 import { triggerHapticFeedback } from '../../lib/haptics';
+import MediaFullscreenModal from './MediaFullscreenModal';
 
 interface AIMessageProps {
   message: ChatMessage;
@@ -39,6 +40,7 @@ export default function AIMessage({
   const messageRef = useRef<HTMLDivElement>(null);
   const [isEditingNote, setIsEditingNote] = useState(false);
   const [noteContent, setNoteContent] = useState('');
+  const [fullscreenMedia, setFullscreenMedia] = useState<{ url: string; type: 'image' | 'video'; asset: MediaAsset } | null>(null);
 
   const responses = message.responses || [];
   const currentIndex = message.currentResponseIndex ?? 0;
@@ -185,12 +187,13 @@ export default function AIMessage({
                       <img
                         src={asset.url}
                         alt={`Generated image ${idx + 1}`}
-                        className="rounded-lg max-w-full h-auto"
+                        className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity"
                         style={{ maxWidth: 'min(250px, 25vw)' }}
                         loading="lazy"
+                        onClick={() => { triggerHapticFeedback(); setFullscreenMedia({ url: asset.url, type: 'image', asset }); }}
                       />
                       <button
-                        onClick={() => { triggerHapticFeedback(); handleDownload(asset); }}
+                        onClick={(e) => { e.stopPropagation(); triggerHapticFeedback(); handleDownload(asset); }}
                         className="absolute top-2 right-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 active:bg-gray-100 dark:active:bg-gray-700 active:scale-95 transition-all duration-100"
                         title="Download image"
                       >
@@ -203,12 +206,19 @@ export default function AIMessage({
                       <video
                         src={asset.url}
                         controls
-                        className="rounded-lg max-w-full h-auto"
+                        className="rounded-lg max-w-full h-auto cursor-pointer"
+                        onClick={(e) => {
+                          // Only open fullscreen if not clicking on controls
+                          if (e.target === e.currentTarget) {
+                            triggerHapticFeedback();
+                            setFullscreenMedia({ url: asset.url, type: 'video', asset });
+                          }
+                        }}
                       >
                         Your browser does not support the video tag.
                       </video>
                       <button
-                        onClick={() => { triggerHapticFeedback(); handleDownload(asset); }}
+                        onClick={(e) => { e.stopPropagation(); triggerHapticFeedback(); handleDownload(asset); }}
                         className="absolute top-2 right-2 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 active:bg-gray-100 dark:active:bg-gray-700 active:scale-95 transition-all duration-100"
                         title="Download video"
                       >
@@ -380,6 +390,17 @@ export default function AIMessage({
         </div>
         )}
       </div>
+
+      {/* Fullscreen Media Modal */}
+      {fullscreenMedia && (
+        <MediaFullscreenModal
+          isOpen={true}
+          onClose={() => setFullscreenMedia(null)}
+          mediaUrl={fullscreenMedia.url}
+          mediaType={fullscreenMedia.type}
+          onDownload={() => handleDownload(fullscreenMedia.asset)}
+        />
+      )}
     </div>
   );
 }

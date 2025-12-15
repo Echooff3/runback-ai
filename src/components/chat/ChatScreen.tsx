@@ -16,6 +16,7 @@ import AIMessage from './AIMessage';
 import EnhancedChatInput from './EnhancedChatInput';
 import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
+import Flux2GenerationInput from './Flux2GenerationInput';
 import SongwritingScreen from './SongwritingScreen';
 import LoadingIndicator from './LoadingIndicator';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
@@ -59,6 +60,7 @@ export default function ChatScreen() {
   const [modelParameters, setModelParameters] = useState<ModelParameters>({});
   const [musicDraft, setMusicDraft] = useState<{ style: string; lyrics: string } | null>(null);
   const [fluxDraft, setFluxDraft] = useState<string>('');
+  const [flux2Draft, setFlux2Draft] = useState<string>('');
   const [modelContextLength, setModelContextLength] = useState<number>(0);
   const [loadingStatus, setLoadingStatus] = useState<'connecting' | 'waiting' | 'streaming'>('connecting');
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
@@ -600,14 +602,18 @@ export default function ChatScreen() {
           style: parsed.prompt,
           lyrics: parsed.lyrics_prompt
         });
-      } else if (parsed.prompt && (selectedModel === 'fal-ai/flux/dev')) {
+      } else if (parsed.prompt && selectedModel === 'fal-ai/flux/dev') {
         setFluxDraft(parsed.prompt);
+      } else if (parsed.prompt && selectedModel === 'fal-ai/flux-2') {
+        setFlux2Draft(parsed.prompt);
       }
     } catch (e) {
       console.error('Failed to parse message for editing:', e);
       // Fallback for plain text messages if any
       if (selectedModel === 'fal-ai/flux/dev') {
         setFluxDraft(message.content);
+      } else if (selectedModel === 'fal-ai/flux-2') {
+        setFlux2Draft(message.content);
       }
     }
   };
@@ -782,7 +788,7 @@ export default function ChatScreen() {
                     onNavigateResponse={(direction) => handleNavigateResponse(message.id, direction)}
                     onVisibilityChange={(isVisible) => handleVisibilityChange(currentResponse.id, isVisible)}
                     onEdit={
-                      (selectedModel === 'fal-ai/minimax-music/v1.5' || selectedModel === 'fal-ai/minimax-music/v2' || selectedModel === 'fal-ai/flux/dev') 
+                      (selectedModel === 'fal-ai/minimax-music/v1.5' || selectedModel === 'fal-ai/minimax-music/v2' || selectedModel === 'fal-ai/flux/dev' || selectedModel === 'fal-ai/flux-2') 
                         ? () => handleEditMessage(message) 
                         : undefined
                     }
@@ -824,6 +830,12 @@ export default function ChatScreen() {
           initialStyle={musicDraft?.style}
           initialLyrics={musicDraft?.lyrics}
           selectedModel={selectedModel}
+        />
+      ) : selectedProvider === 'fal' && selectedModel === 'fal-ai/flux-2' ? (
+        <Flux2GenerationInput
+          onSend={handleSendMessage}
+          disabled={isLoading}
+          initialPrompt={flux2Draft}
         />
       ) : selectedProvider === 'fal' && selectedModel === 'fal-ai/flux/dev' ? (
         <FluxGenerationInput

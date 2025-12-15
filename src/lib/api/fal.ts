@@ -147,6 +147,28 @@ export class FalClient {
         }
       }
 
+      // Special handling for Flux 2 model which sends JSON string as prompt
+      if (model === 'fal-ai/flux-2') {
+        try {
+          // Check if prompt is a JSON string containing our special structure
+          const parsed = JSON.parse(prompt);
+          if (parsed.prompt) {
+            input.prompt = parsed.prompt;
+            if (parsed.image_size) input.image_size = parsed.image_size;
+            if (parsed.num_images) input.num_images = parsed.num_images;
+            if (parsed.enable_safety_checker !== undefined) input.enable_safety_checker = parsed.enable_safety_checker;
+            if (parsed.output_format) input.output_format = parsed.output_format;
+            if (parsed.acceleration) input.acceleration = parsed.acceleration;
+            if (parsed.enable_prompt_expansion !== undefined) input.enable_prompt_expansion = parsed.enable_prompt_expansion;
+            if (parsed.guidance_scale !== undefined) input.guidance_scale = parsed.guidance_scale;
+            if (parsed.num_inference_steps !== undefined) input.num_inference_steps = parsed.num_inference_steps;
+            if (parsed.seed !== undefined) input.seed = parsed.seed;
+          }
+        } catch (e) {
+          // Not JSON, treat as regular prompt
+        }
+      }
+
       const { request_id } = await fal.queue.submit(model, {
         input,
       });
@@ -393,10 +415,11 @@ export class FalClient {
 
 // Available models for Fal.ai
 export const FAL_MODELS = [
+  { id: 'fal-ai/flux-2', name: 'Flux 2' },
+  { id: 'fal-ai/flux/dev', name: 'Flux Dev' },
   { id: 'fal-ai/fast-llm', name: 'Fast LLM' },
   { id: 'fal-ai/llama-3-70b', name: 'Llama 3 70B' },
   { id: 'fal-ai/llama-3-8b', name: 'Llama 3 8B' },
   { id: 'fal-ai/minimax-music/v1.5', name: 'Minimax Music 1.5' },
   { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0' },
-  { id: 'fal-ai/flux/dev', name: 'Flux Dev' },
 ];
