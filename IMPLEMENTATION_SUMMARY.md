@@ -99,6 +99,42 @@ See [MODEL_SELECTOR.md](./MODEL_SELECTOR.md) for detailed documentation.
 
 ---
 
+## Additional Implemented Features
+
+### 🗂️ Multi-Tab Chat Sessions (November 2025)
+- **Multiple concurrent sessions**: Create unlimited chat tabs with different models and providers
+- **Persistent storage**: All sessions saved to IndexedDB with full message history
+- **Star protection**: Mark important sessions as starred to prevent accidental deletion
+- **Session management**: Close tabs (keeps in history), reopen closed sessions, delete unwanted sessions
+- **Session history UI**: Search/filter/manage all sessions from Settings screen
+- **Auto-titles**: Sessions automatically titled from first user message
+- **Session metadata**: Track provider, model, message count, timestamps per session
+
+### 🔐 Provider-Scoped Model Parameters (November 2025)
+- **Unique parameter storage**: Parameters stored per provider+model combination to prevent collisions
+- **Storage format**: `model_params_{provider}_{modelId}` ensures isolation
+- **Parameter modal**: Configure model-specific parameters with provider-aware forms
+- **Dynamic forms**: HTML parameter forms fetched and cached per provider+model
+- **Persistence**: Parameters saved to localStorage and survive browser restarts
+- **No collisions**: Same model name on different providers maintains separate configurations
+
+### 🎨 Enhanced UI/UX Features
+- **Dark/Light/System theme**: Full Tailwind CSS dark mode implementation
+- **Mobile-first design**: Optimized for 320-428px viewports
+- **Touch-friendly**: 44px minimum touch targets throughout UI
+- **Responsive animations**: Smooth transitions and slide-up modals
+- **Error handling**: Graceful fallbacks and user-friendly error messages
+- **Loading states**: Clear visual feedback during API calls
+
+### 💾 Advanced Storage Architecture
+- **LocalStorage**: API keys, settings, prompts, last-used selections
+- **IndexedDB**: Chat sessions, message history, session metadata
+- **Dual caching**: In-memory and persistent caching for model lists and forms
+- **No backend required**: 100% client-side storage
+- **Privacy-first**: All data stays in browser, never sent to external servers
+
+---
+
 ## Quick Reference Guide
 
 This document provides a quick overview of the key features and requirements for implementing the RunBack AI application.

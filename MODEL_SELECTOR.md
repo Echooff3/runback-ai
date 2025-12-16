@@ -46,6 +46,12 @@ Models are fetched in real-time from provider APIs when the modal opens:
 - **Loading states**: Shows loading animation while fetching
 - **No results**: Clear message when search returns no matches
 
+### 6. Provider-Scoped Parameters
+- **Parameter modal**: Each model has a parameters button (›) that opens provider-aware configuration
+- **Unique storage**: Parameters stored per provider+model combination using `{provider}_{modelId}` format
+- **No collisions**: Same model name on different providers maintains separate configurations
+- **Persistent**: All parameter settings saved to localStorage and survive browser restarts
+
 ## UI Components
 
 ### Modal Structure

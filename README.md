@@ -8,6 +8,20 @@ Swiss army knife LLM tool tightly integrated with [OpenRouter.ai](https://openro
 
 ---
 
+## What's New
+
+- ✨ **Helper Model & AI Polisher** — add a helper model for background tasks and a "Polish" feature for music prompts (configurable in Settings).
+- 🚀 **FAL queue-based async processing** — queue submission, viewport-aware polling (10s), real-time status badges & logs, and media asset rendering (images/video/audio) with download support.
+- 🗂️ **Multi-tab chat sessions** — create multiple tabs, star sessions to protect from deletion, persistent storage in IndexedDB, session history UI for searching/filtering/reopening.
+- 🎉 **Enhanced Model Selector** — full-screen modal, fuzzy search, dynamic model fetching, provider-scoped parameter storage.
+- 🔐 **Provider-scoped model parameters** — model parameter forms and storage are stored per provider+model to avoid collisions.
+- 📤 **Import/Export** — backup and restore all app data (excluding API keys) with merge or replace modes.
+- 🗂️ **System & Slash Prompts** — complete CRUD operations with autocomplete, templates, and default prompt seeding.
+
+For full details, see [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) and [MODEL_SELECTOR.md](./MODEL_SELECTOR.md).
+
+---
+
 ## ✨ Current Status: Phase 2 In Progress
 
 ✅ **Phase 1: Foundation** - Settings, Theme Support, API Key Management
