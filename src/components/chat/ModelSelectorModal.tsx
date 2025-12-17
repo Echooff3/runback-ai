@@ -163,6 +163,7 @@ export default function ModelSelectorModal({
       { id: 'fal-ai/minimax-music/v1.5', name: 'Minimax Music 1.5', description: 'Generate music with Minimax 1.5' },
       { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0', description: 'Generate music with Minimax 2.0' },
       { id: 'fal-ai/flux/dev', name: 'Flux Dev', description: 'Generate images with Flux Dev' },
+      { id: 'fal-ai/flux-2', name: 'Flux 2', description: 'Generate images with Flux 2' },
     ];
 
     try {
@@ -223,6 +224,7 @@ export default function ModelSelectorModal({
         { id: 'fal-ai/minimax-music/v1.5', name: 'Minimax Music 1.5', description: 'Generate music with Minimax 1.5' },
         { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0', description: 'Generate music with Minimax 2.0' },
         { id: 'fal-ai/flux/dev', name: 'Flux Dev', description: 'Generate images with Flux Dev' },
+        { id: 'fal-ai/flux-2', name: 'Flux 2', description: 'Generate images with Flux 2' },
         { id: 'fal-ai/fast-llm', name: 'Fast LLM', description: 'Quick inference model' },
         { id: 'fal-ai/llama-3-70b', name: 'Llama 3 70B', description: 'Large language model' },
         { id: 'fal-ai/llama-3-8b', name: 'Llama 3 8B', description: 'Efficient language model' },
