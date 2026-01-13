@@ -749,7 +749,7 @@ export default function ChatScreen() {
           <div className="flex items-center gap-2">
             {selectedProvider === 'openrouter' && currentSession && currentSession.messages.length > 0 && (
               <button
-                onClick={createCheckpoint}
+                onClick={() => createCheckpoint('manual')}
                 disabled={isLoading}
                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-600 dark:text-gray-400"
                 title="Create Checkpoint (Summarize History)"
