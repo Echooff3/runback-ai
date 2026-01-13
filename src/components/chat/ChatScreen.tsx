@@ -7,6 +7,7 @@ import { useSettingsStore } from '../../stores/settingsStore';
 import { getAIClient, estimateTokenCount } from '../../lib/api';
 import { getLastProvider, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
+import { TopicClassifier } from '../../lib/topicClassifier';
 import type { Provider, ChatMessage, ModelParameters, AIResponse, ChatSession, SessionCheckpoint, Attachment } from '../../types';
 import SessionTabs from './SessionTabs';
 import ProviderSelector from './ProviderSelector';
@@ -19,6 +20,7 @@ import FluxGenerationInput from './FluxGenerationInput';
 import Flux2GenerationInput from './Flux2GenerationInput';
 import SongwritingScreen from './SongwritingScreen';
 import LoadingIndicator from './LoadingIndicator';
+import TopicChangeDivider from './TopicChangeDivider';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
 
 const CheckpointDivider = ({ checkpoint }: { checkpoint: SessionCheckpoint }) => (
@@ -330,7 +332,7 @@ export default function ChatScreen() {
       if (selectedProvider === 'openrouter') {
         try {
           setLoading(true);
-          await createCheckpoint();
+          await createCheckpoint('manual');
         } catch (err) {
           console.error('Failed to create checkpoint:', err);
           setError('Failed to create checkpoint');
@@ -346,8 +348,44 @@ export default function ChatScreen() {
 
     clearError();
 
+    // Topic change detection (only for OpenRouter and regular chat sessions)
+    let topicChanged = false;
+    let topicChangeReasoning: string | undefined;
+    let shouldCheckpointFromTopicChange = false;
+
+    if (selectedProvider === 'openrouter' && currentSession.type === 'chat' && currentSession.messages.length > 0) {
+      const { getAPIKey } = useSettingsStore.getState();
+      const apiKey = getAPIKey('openrouter');
+      
+      if (apiKey) {
+        try {
+          console.log('[ChatScreen] Running topic change detection...');
+          const classificationResult = await TopicClassifier.classifyTopicChange(
+            content,
+            currentSession.messages,
+            apiKey
+          );
+          
+          topicChanged = classificationResult.topic_changed;
+          topicChangeReasoning = classificationResult.reasoning;
+          
+          console.log('[ChatScreen] Topic change detection result:', classificationResult);
+          
+          // If topic changed, create a checkpoint before adding the new message
+          if (topicChanged) {
+            console.log('[ChatScreen] Topic change detected, creating checkpoint...');
+            shouldCheckpointFromTopicChange = true;
+            await createCheckpoint('topic_change');
+          }
+        } catch (err) {
+          console.error('[ChatScreen] Topic detection failed:', err);
+          // Continue without topic detection on error
+        }
+      }
+    }
+
     // Check token usage for auto-checkpoint (OpenRouter only for now)
-    if (selectedProvider === 'openrouter' && modelContextLength > 0) {
+    if (selectedProvider === 'openrouter' && modelContextLength > 0 && !shouldCheckpointFromTopicChange) {
       // Calculate current context tokens
       const contextMessages = getConversationContext(currentSession);
       const contextText = contextMessages.map(m => m.content).join(' ');
@@ -355,11 +393,11 @@ export default function ChatScreen() {
       
       if (currentTokens > modelContextLength * 0.6) {
         console.log(`[ChatScreen] Token count ${currentTokens} exceeds 60% of ${modelContextLength}. Creating checkpoint...`);
-        await createCheckpoint();
+        await createCheckpoint('token_limit');
       }
     }
 
-    const userMessage = addUserMessage(content, attachments);
+    const userMessage = addUserMessage(content, attachments, topicChanged, topicChangeReasoning);
     
     // Set up loading state with tracking
     setPendingMessageId(userMessage.id);
@@ -774,6 +812,14 @@ export default function ChatScreen() {
 
             return (
               <div key={message.id}>
+                {/* Show topic change divider if this message represents a topic change */}
+                {message.topicChanged && (
+                  <TopicChangeDivider
+                    timestamp={message.timestamp}
+                    reasoning={message.topicChangeReasoning}
+                    checkpointCreated={true}
+                  />
+                )}
                 <UserMessage
                   message={message}
                   onRerun={() => handleRerunMessage(message)}

@@ -96,6 +96,8 @@ export interface ChatMessage {
   provider?: Provider;
   model?: string;
   isCollapsed?: boolean;
+  topicChanged?: boolean;
+  topicChangeReasoning?: string;
   metadata?: {
     tokenCount?: number;
     responseTime?: number;
@@ -128,4 +130,5 @@ export interface SessionCheckpoint {
   summary: string;
   lastMessageId: string;
   timestamp: string;
+  reason?: 'manual' | 'token_limit' | 'topic_change';
 }
