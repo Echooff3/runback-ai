@@ -10,6 +10,7 @@ Swiss army knife LLM tool tightly integrated with [OpenRouter.ai](https://openro
 
 ## What's New
 
+- 🧠 **Topic Change Detection & Auto-Checkpointing** — AI automatically detects topic changes using Phi-3 Mini classifier, creates checkpoints to preserve context, and displays visual indicators with debugging info (OpenRouter only). See [TOPIC_CHANGE_DETECTION.md](./TOPIC_CHANGE_DETECTION.md).
 - ✨ **Helper Model & AI Polisher** — add a helper model for background tasks and a "Polish" feature for music prompts (configurable in Settings).
 - 🚀 **FAL queue-based async processing** — queue submission, viewport-aware polling (10s), real-time status badges & logs, and media asset rendering (images/video/audio) with download support.
 - 🗂️ **Multi-tab chat sessions** — create multiple tabs, star sessions to protect from deletion, persistent storage in IndexedDB, session history UI for searching/filtering/reopening.

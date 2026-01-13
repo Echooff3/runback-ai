@@ -4,6 +4,8 @@
 
 This feature automatically detects when a user changes the conversation topic and creates a checkpoint to preserve the previous conversation context. This is similar to how GitHub Copilot manages conversation history in VS Code.
 
+![Initial App Screen](https://github.com/user-attachments/assets/8273f9d0-f1c7-42c3-9c5a-2f7d2cd7a6d2)
+
 ## How It Works
 
 ### 1. Topic Classification
