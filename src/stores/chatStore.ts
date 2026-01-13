@@ -38,10 +38,10 @@ interface ChatState {
   updateSessionTitle: (sessionId: string, title: string) => Promise<void>;
   updateSessionSettings: (sessionId: string, provider: Provider, model: string) => Promise<void>;
   updateSessionParameters: (sessionId: string, parameters: ModelParameters) => Promise<void>;
-  createCheckpoint: () => Promise<void>;
+  createCheckpoint: (reason?: 'manual' | 'token_limit' | 'topic_change') => Promise<void>;
   
   // Message actions
-  addUserMessage: (content: string, attachments?: Attachment[]) => ChatMessage;
+  addUserMessage: (content: string, attachments?: Attachment[], topicChanged?: boolean, topicChangeReasoning?: string) => ChatMessage;
   addAIResponse: (userMessageId: string, response: AIResponse) => void;
   updateAIResponseStatus: (userMessageId: string, responseId: string, updates: Partial<AIResponse>) => void;
   updateAIResponseNote: (userMessageId: string, responseId: string, note: string) => void;
@@ -340,7 +340,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     });
   },
 
-  createCheckpoint: async () => {
+  createCheckpoint: async (reason: 'manual' | 'token_limit' | 'topic_change' = 'manual') => {
     const state = get();
     if (!state.currentSession) return;
 
@@ -368,6 +368,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         summary,
         lastMessageId: lastMessage?.id || '',
         timestamp: new Date().toISOString(),
+        reason,
       };
 
       const updatedSession = {
@@ -395,7 +396,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }
   },
   
-  addUserMessage: (content: string, attachments?: Attachment[]) => {
+  addUserMessage: (content: string, attachments?: Attachment[], topicChanged?: boolean, topicChangeReasoning?: string) => {
     const state = get();
     if (!state.currentSession) {
       throw new Error('No active session');
@@ -409,6 +410,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
       timestamp: new Date().toISOString(),
       responses: [],
       currentResponseIndex: 0,
+      topicChanged,
+      topicChangeReasoning,
     };
     
     const updatedSession = {
