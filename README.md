@@ -23,25 +23,27 @@ For full details, see [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) a
 
 ---
 
-## ✨ Current Status: Phase 2 In Progress
+## ✨ Current Status: Phase 3 Complete, Phase 4 In Progress
 
-✅ **Phase 1: Foundation** - Settings, Theme Support, API Key Management
-🚧 **Phase 2: Chat Core** - Provider Integration, Enhanced Model Selection
-
-### Recent Updates:
-- 🆕 **Enhanced Model Selector** - Full-screen modal with fuzzy search and dynamic model fetching
-  - Search through 100+ models from OpenRouter, Replicate, and Fal.ai
-  - Touch-friendly 44px row heights
-  - Real-time model fetching from provider APIs
-  - Graceful fallbacks when APIs are unavailable
+✅ **Phase 1: Foundation** - Settings, Theme Support, API Key Management (COMPLETE)
+✅ **Phase 2: Chat Core** - Provider Integration, Multi-Tab Sessions, Enhanced Model Selection (COMPLETE)
+✅ **Phase 3: Prompt Management** - System Prompts, Slash Prompts, Import/Export (COMPLETE)
+🚧 **Phase 4: Polish & Optimization** - UI/UX Refinements, Performance, Accessibility (IN PROGRESS)
 
 ### Implemented Features:
+- 🗂️ **Multi-Tab Chat Sessions** - Create unlimited tabs, star important sessions, persistent storage
+- 🧠 **Topic Change Detection** - AI automatically detects topic changes and creates checkpoints (OpenRouter only)
+- ✨ **Helper Model & AI Polisher** - Background tasks model + music prompt enhancement
+- 🚀 **FAL Queue-Based Processing** - Async image/video/audio generation with real-time status updates
+- 🎉 **Enhanced Model Selector** - Full-screen modal with fuzzy search and dynamic model fetching
+- 🗂️ **System & Slash Prompts** - Complete CRUD operations with autocomplete and templates
+- 📤 **Import/Export** - Backup and restore all app data (excluding API keys)
+- 🔐 **Provider-Scoped Parameters** - Model parameters stored per provider+model to avoid collisions
 - 🌓 **Dark/Light/System Theme** - Full Tailwind CSS v4 implementation
 - ⚙️ **Settings Screen** - API key management for 3 providers
-- 💾 **LocalStorage Persistence** - All data stored locally in browser
+- 💾 **Dual Storage** - LocalStorage + IndexedDB for efficient data persistence
 - 🎨 **Mobile-Responsive Design** - Optimized for 320-428px viewports
 - 🔒 **Privacy-First** - No backend, no tracking, data never leaves your device
-- 🔍 **Smart Model Selection** - Fuzzy search through available models
 
 ---
 
@@ -115,11 +117,13 @@ npm run build
 ## 🛠️ Technology Stack
 
 ```
-Vite v7.2.4 + React 18 + TypeScript + Tailwind CSS v4
-├── React Router (navigation)
-├── Zustand (state management)
+Vite v7.2.4 + React 19 + TypeScript + Tailwind CSS v4
+├── React Router v7.9.6 (navigation)
+├── Zustand v5.0.8 (state management)
 ├── LocalStorage (settings, API keys, prompts)
-├── IndexedDB (chat history - Phase 2)
+├── IndexedDB (chat sessions and message history)
+├── Marked v15.0.12 (markdown rendering)
+├── DOMPurify v3.3.0 (XSS protection)
 └── GitHub Actions (CI/CD)
 ```
 
@@ -153,26 +157,28 @@ npm run lint         # Lint code (if configured)
 - LocalStorage persistence layer
 - GitHub Actions CI/CD
 
-### 🚧 Phase 2: Chat Core (Next)
+### ✅ Phase 2: Chat Core (COMPLETE)
+- Multi-tab chat sessions with IndexedDB persistence
 - Chat interface with provider/model selection
 - API integration (all 3 providers)
 - Re-run prompts with response history
+- FAL queue-based async processing
+- Topic change detection and auto-checkpointing
 - Loading states and error handling
 
-### 📅 Phase 3: Prompt Management
-- System prompts CRUD
+### ✅ Phase 3: Prompt Management (COMPLETE)
+- System prompts CRUD with default protection
 - Slash prompts CRUD with autocomplete
-- Default prompts
+- Dynamic template variables
+- Default prompts seeding
 - Import/Export functionality
 
-### 📅 Phase 4: Polish & Optimization
+### 🚧 Phase 4: Polish & Optimization (IN PROGRESS)
 - UI/UX refinements
 - Performance optimization
 - Accessibility (WCAG AA)
 - PWA setup
 - Documentation
-
-**Total Estimated Time**: 8-11 weeks
 
 ---
 
@@ -182,13 +188,14 @@ npm run lint         # Lint code (if configured)
 runback-ai/
 ├── src/
 │   ├── components/         # React components
-│   │   ├── chat/          # Chat interface (Phase 2)
+│   │   ├── chat/          # Chat interface ✅
 │   │   ├── settings/      # Settings screens ✅
-│   │   ├── prompts/       # Prompt managers (Phase 3)
 │   │   └── common/        # Shared components
 │   ├── lib/               # Utilities
-│   │   ├── storage/       # LocalStorage utilities ✅
-│   │   └── api/           # AI provider clients (Phase 2)
+│   │   ├── storage/       # LocalStorage + IndexedDB ✅
+│   │   ├── api/           # AI provider clients ✅
+│   │   ├── defaults/      # Default prompts ✅
+│   │   └── topicClassifier.ts # Topic change detection ✅
 │   ├── hooks/             # React hooks
 │   ├── stores/            # Zustand stores ✅
 │   ├── types/             # TypeScript types ✅
@@ -203,10 +210,12 @@ runback-ai/
 ## 🔒 Privacy & Security
 
 ### What's Stored Locally
-- ✅ API keys (in LocalStorage)
-- ✅ System prompts and slash prompts
-- ✅ Theme preferences and settings
-- ✅ Chat history (IndexedDB, optional)
+- ✅ API keys (in LocalStorage, Base64 encoded)
+- ✅ System prompts and slash prompts (LocalStorage)
+- ✅ Theme preferences and settings (LocalStorage)
+- ✅ Chat sessions and message history (IndexedDB)
+- ✅ Model parameters (per provider+model, LocalStorage)
+- ✅ Helper model configuration (LocalStorage)
 
 ### What's NEVER Stored
 - ❌ No server-side logs
@@ -220,11 +229,11 @@ runback-ai/
 
 ## 📊 Build Performance
 
-- Total bundle size: **264KB** (target: <500KB) ✅
-- Zipped artifact: **79KB**
-- Main JS bundle: 230KB
-- CSS bundle: 15KB (Tailwind)
-- Build time: ~2 seconds
+- **Total bundle size**: ~655KB (main JS bundle)
+- **CSS bundle**: ~52KB (Tailwind CSS)
+- **Zipped size**: ~199KB (gzipped JS)
+- **Build time**: ~3-4 seconds
+- **Target**: Consider code splitting for bundles > 500KB (noted in build output)
 
 ---
 
@@ -250,29 +259,6 @@ Contributions are welcome! Please read the [PRD](./PRD.md) and [Implementation S
 
 ---
 
-**Built with ❤️ for privacy-conscious AI enthusiasts
-import reactDom from 'eslint-plugin-react-dom'
+**Built with ❤️ for privacy-conscious AI enthusiasts**
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-⚠️ **Disclaimer:** This is a purpose-built app for hobbyists. Please proceed only if you know what you are doing.
+⚠️ **Disclaimer:** This is a purpose-built app for hobbyists and developers. Please ensure you understand the privacy implications and API usage costs before deployment.
