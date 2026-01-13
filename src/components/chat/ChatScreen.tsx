@@ -385,6 +385,8 @@ export default function ChatScreen() {
     }
 
     // Check token usage for auto-checkpoint (OpenRouter only for now)
+    // Note: Skip token-limit checkpoint if we just created a topic-change checkpoint
+    // to avoid double-checkpointing. Topic changes take precedence.
     if (selectedProvider === 'openrouter' && modelContextLength > 0 && !shouldCheckpointFromTopicChange) {
       // Calculate current context tokens
       const contextMessages = getConversationContext(currentSession);

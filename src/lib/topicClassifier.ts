@@ -35,7 +35,7 @@ Instructions:
 - Output ONLY valid JSON in this exact format: { "topic_changed": true } or { "topic_changed": false }
 - Do not include any other text, explanations, or formatting.`;
 
-    // Get last 3-5 messages for context (to keep it efficient)
+    // Get last 5 messages for context (to keep it efficient)
     const recentMessages = previousMessages.slice(-5);
     
     // Build conversation context
@@ -65,27 +65,37 @@ New input: ${newInput}`;
         false // Disable web search for classification
       );
 
-      // Parse the JSON response
+      // Parse the JSON response - try direct parse first, then regex fallback
       const content = response.content.trim();
       
-      // Try to extract JSON from the response
-      let jsonMatch = content.match(/\{[^}]*"topic_changed"\s*:\s*(true|false)[^}]*\}/);
-      if (!jsonMatch) {
-        // Fallback: check if response contains true/false
-        const lowerContent = content.toLowerCase();
-        if (lowerContent.includes('"topic_changed": true') || lowerContent.includes("'topic_changed': true")) {
-          return { topic_changed: true };
-        } else if (lowerContent.includes('"topic_changed": false') || lowerContent.includes("'topic_changed': false")) {
-          return { topic_changed: false };
+      // Try to parse as JSON directly
+      try {
+        const result = JSON.parse(content) as TopicClassificationResult;
+        if (typeof result.topic_changed === 'boolean') {
+          return result;
         }
-        
-        // If we can't parse it, assume no topic change to be safe
-        console.warn('[TopicClassifier] Could not parse classifier response:', content);
+      } catch {
+        // Direct parse failed, try to extract JSON from the response
+      }
+      
+      // Try to extract JSON from the response
+      const jsonMatch = content.match(/\{[^}]*"topic_changed"\s*:\s*(true|false)[^}]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]) as TopicClassificationResult;
+        return result;
+      }
+      
+      // Fallback: check if response contains true/false
+      const lowerContent = content.toLowerCase();
+      if (lowerContent.includes('"topic_changed": true') || lowerContent.includes("'topic_changed': true")) {
+        return { topic_changed: true };
+      } else if (lowerContent.includes('"topic_changed": false') || lowerContent.includes("'topic_changed': false")) {
         return { topic_changed: false };
       }
-
-      const result = JSON.parse(jsonMatch[0]) as TopicClassificationResult;
-      return result;
+      
+      // If we can't parse it, assume no topic change to be safe
+      console.warn('[TopicClassifier] Could not parse classifier response:', content);
+      return { topic_changed: false };
     } catch (error) {
       console.error('[TopicClassifier] Classification failed:', error);
       // On error, assume no topic change to avoid unwanted checkpoints
