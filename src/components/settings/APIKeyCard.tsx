@@ -69,7 +69,7 @@ export default function APIKeyCard({ provider, config, onUpdate }: APIKeyCardPro
 
       {/* API Key Input */}
       <div>
-        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-200">
+        <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-100">
           API Key
         </label>
         <div className="flex space-x-2">
