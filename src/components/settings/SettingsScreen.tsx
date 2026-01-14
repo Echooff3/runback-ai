@@ -59,7 +59,7 @@ export default function SettingsScreen() {
         <section>
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">API Keys</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Configure your API keys for AI providers. Keys are stored locally in your browser.
             </p>
             <div className="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
@@ -90,7 +90,7 @@ export default function SettingsScreen() {
         <section>
           <div className="mb-6">
             <h3 className="text-lg font-semibold mb-2">Helper Model</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Specify a model to be used for helper tasks (e.g., polishing prompts).
             </p>
           </div>
