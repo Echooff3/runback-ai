@@ -12,7 +12,7 @@ export default function ThemeToggle() {
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold mb-2">Appearance</h3>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
           Choose your preferred theme
         </p>
       </div>
@@ -24,7 +24,7 @@ export default function ThemeToggle() {
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             theme === 'light'
               ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-200'
           }`}
         >
           Light
@@ -34,7 +34,7 @@ export default function ThemeToggle() {
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             theme === 'dark'
               ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-200'
           }`}
         >
           Dark
@@ -44,7 +44,7 @@ export default function ThemeToggle() {
           className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
             theme === 'system'
               ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-50 shadow-sm'
-              : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+              : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-200'
           }`}
         >
           System
@@ -52,7 +52,7 @@ export default function ThemeToggle() {
       </div>
 
       {/* Current Theme Indicator */}
-      <div className="text-sm text-gray-600 dark:text-gray-400">
+      <div className="text-sm text-gray-600 dark:text-gray-300">
         Currently using: <span className="font-medium capitalize">{actualTheme} mode</span>
       </div>
     </div>
