@@ -169,6 +169,22 @@ export class FalClient {
         }
       }
 
+      // Special handling for Minimax video models which send JSON string as prompt
+      if (model === 'fal-ai/minimax/hailuo-02/pro/text-to-video' || model === 'fal-ai/minimax/hailuo-02-fast/image-to-video') {
+        try {
+          // Check if prompt is a JSON string containing our video generation structure
+          const parsed = JSON.parse(prompt);
+          if (parsed.prompt) {
+            input.prompt = parsed.prompt;
+            if (parsed.prompt_optimizer !== undefined) input.prompt_optimizer = parsed.prompt_optimizer;
+            if (parsed.image_url) input.image_url = parsed.image_url;
+            if (parsed.duration) input.duration = parsed.duration;
+          }
+        } catch (e) {
+          // Not JSON, treat as regular prompt
+        }
+      }
+
       const { request_id } = await fal.queue.submit(model, {
         input,
       });
