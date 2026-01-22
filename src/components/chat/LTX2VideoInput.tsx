@@ -299,7 +299,10 @@ export default function LTX2VideoInput({
                   min="9"
                   max="481"
                   value={numFrames}
-                  onChange={(e) => setNumFrames(parseInt(e.target.value) || 121)}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val)) setNumFrames(Math.max(9, Math.min(481, val)));
+                  }}
                   disabled={disabled}
                   className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 />
@@ -315,7 +318,10 @@ export default function LTX2VideoInput({
                   min="1"
                   max="60"
                   value={fps}
-                  onChange={(e) => setFps(parseInt(e.target.value) || 25)}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (!isNaN(val)) setFps(Math.max(1, Math.min(60, val)));
+                  }}
                   disabled={disabled}
                   className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 />
@@ -380,7 +386,10 @@ export default function LTX2VideoInput({
                     min="1"
                     max="14142"
                     value={customWidth}
-                    onChange={(e) => setCustomWidth(parseInt(e.target.value) || 576)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val)) setCustomWidth(Math.max(1, Math.min(14142, val)));
+                    }}
                     disabled={disabled}
                     className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                   />
@@ -394,7 +403,10 @@ export default function LTX2VideoInput({
                     min="1"
                     max="14142"
                     value={customHeight}
-                    onChange={(e) => setCustomHeight(parseInt(e.target.value) || 1024)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (!isNaN(val)) setCustomHeight(Math.max(1, Math.min(14142, val)));
+                    }}
                     disabled={disabled}
                     className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                   />
@@ -436,7 +448,10 @@ export default function LTX2VideoInput({
                   max="1"
                   step="0.1"
                   value={cameraLoraScale}
-                  onChange={(e) => setCameraLoraScale(parseFloat(e.target.value) || 1)}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    if (!isNaN(val)) setCameraLoraScale(Math.max(0, Math.min(1, val)));
+                  }}
                   disabled={disabled}
                   className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 />
