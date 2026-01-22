@@ -19,6 +19,7 @@ import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
 import Flux2GenerationInput from './Flux2GenerationInput';
 import VideoGenerationInput from './VideoGenerationInput';
+import LTX2VideoInput from './LTX2VideoInput';
 import SongwritingScreen from './SongwritingScreen';
 import LoadingIndicator from './LoadingIndicator';
 import TopicChangeDivider from './TopicChangeDivider';
@@ -904,6 +905,11 @@ export default function ChatScreen() {
           initialStyle={musicDraft?.style}
           initialLyrics={musicDraft?.lyrics}
           selectedModel={selectedModel}
+        />
+      ) : selectedProvider === 'fal' && selectedModel === 'fal-ai/ltx-2-19b/distilled/text-to-video' ? (
+        <LTX2VideoInput
+          onSend={handleSendMessage}
+          disabled={isLoading}
         />
       ) : currentSession?.type === 'video-generation' || (selectedProvider === 'fal' && isVideoGenerationModel(selectedModel)) ? (
         <VideoGenerationInput
