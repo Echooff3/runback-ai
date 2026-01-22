@@ -4,7 +4,7 @@ import { Cog6ToothIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { getAIClient, estimateTokenCount } from '../../lib/api';
+import { getAIClient, estimateTokenCount, isVideoGenerationModel } from '../../lib/api';
 import { getLastProvider, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
 import { TopicClassifier } from '../../lib/topicClassifier';
@@ -905,7 +905,7 @@ export default function ChatScreen() {
           initialLyrics={musicDraft?.lyrics}
           selectedModel={selectedModel}
         />
-      ) : currentSession?.type === 'video-generation' || (selectedProvider === 'fal' && (selectedModel === 'fal-ai/minimax/hailuo-02/pro/text-to-video' || selectedModel === 'fal-ai/minimax/hailuo-02-fast/image-to-video')) ? (
+      ) : currentSession?.type === 'video-generation' || (selectedProvider === 'fal' && isVideoGenerationModel(selectedModel)) ? (
         <VideoGenerationInput
           onSend={handleSendMessage}
           disabled={isLoading}

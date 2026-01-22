@@ -14,6 +14,13 @@ interface VideoGenerationInputProps {
   initialMode?: 'text-to-video' | 'image-to-video';
 }
 
+interface VideoGenerationPayload {
+  prompt: string;
+  prompt_optimizer: boolean;
+  image_url?: string;
+  duration?: '6' | '10';
+}
+
 export default function VideoGenerationInput({ 
   onSend, 
   disabled = false,
@@ -48,7 +55,7 @@ export default function VideoGenerationInput({
     // For image-to-video, we need an image URL
     if (mode === 'image-to-video' && !imageUrl.trim()) return;
 
-    let payload: any = {
+    const payload: VideoGenerationPayload = {
       prompt: prompt.trim(),
       prompt_optimizer: promptOptimizer
     };
@@ -59,6 +66,9 @@ export default function VideoGenerationInput({
     }
     
     onSend(JSON.stringify(payload));
+    
+    // Clear only the prompt and image URL fields
+    // Keep duration and optimizer settings for user convenience
     setPrompt('');
     setImageUrl('');
   };

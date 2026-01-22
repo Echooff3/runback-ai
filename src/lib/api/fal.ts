@@ -170,7 +170,7 @@ export class FalClient {
       }
 
       // Special handling for Minimax video models which send JSON string as prompt
-      if (model === 'fal-ai/minimax/hailuo-02/pro/text-to-video' || model === 'fal-ai/minimax/hailuo-02-fast/image-to-video') {
+      if (isVideoGenerationModel(model)) {
         try {
           // Check if prompt is a JSON string containing our video generation structure
           const parsed = JSON.parse(prompt);
@@ -441,3 +441,13 @@ export const FAL_MODELS = [
   { id: 'fal-ai/minimax/hailuo-02/pro/text-to-video', name: 'Minimax Hailuo 02 Pro Text-to-Video' },
   { id: 'fal-ai/minimax/hailuo-02-fast/image-to-video', name: 'Minimax Hailuo 02 Fast Image-to-Video' },
 ];
+
+// Helper constants for model identification
+export const VIDEO_GENERATION_MODELS = [
+  'fal-ai/minimax/hailuo-02/pro/text-to-video',
+  'fal-ai/minimax/hailuo-02-fast/image-to-video'
+] as const;
+
+export function isVideoGenerationModel(modelId: string): boolean {
+  return VIDEO_GENERATION_MODELS.includes(modelId as any);
+}
