@@ -906,7 +906,7 @@ export default function ChatScreen() {
           initialLyrics={musicDraft?.lyrics}
           selectedModel={selectedModel}
         />
-      ) : selectedProvider === 'fal' && selectedModel === 'fal-ai/ltx-2-19b/distilled/text-to-video' ? (
+      ) : currentSession?.type === 'video-with-sound' || (selectedProvider === 'fal' && selectedModel === 'fal-ai/ltx-2-19b/distilled/text-to-video') ? (
         <LTX2VideoInput
           onSend={handleSendMessage}
           disabled={isLoading}
