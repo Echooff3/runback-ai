@@ -185,6 +185,35 @@ export class FalClient {
         }
       }
 
+      // Special handling for LTX-2 video model which sends JSON string as prompt
+      if (model === 'fal-ai/ltx-2-19b/distilled/text-to-video') {
+        try {
+          // Check if prompt is a JSON string containing our LTX-2 generation structure
+          const parsed = JSON.parse(prompt);
+          if (parsed.prompt) {
+            input.prompt = parsed.prompt;
+            if (parsed.num_frames !== undefined) input.num_frames = parsed.num_frames;
+            if (parsed.video_size !== undefined) input.video_size = parsed.video_size;
+            if (parsed.generate_audio !== undefined) input.generate_audio = parsed.generate_audio;
+            if (parsed.use_multiscale !== undefined) input.use_multiscale = parsed.use_multiscale;
+            if (parsed.fps !== undefined) input.fps = parsed.fps;
+            if (parsed.acceleration !== undefined) input.acceleration = parsed.acceleration;
+            if (parsed.camera_lora !== undefined) input.camera_lora = parsed.camera_lora;
+            if (parsed.camera_lora_scale !== undefined) input.camera_lora_scale = parsed.camera_lora_scale;
+            if (parsed.negative_prompt !== undefined) input.negative_prompt = parsed.negative_prompt;
+            if (parsed.seed !== undefined) input.seed = parsed.seed;
+            if (parsed.enable_prompt_expansion !== undefined) input.enable_prompt_expansion = parsed.enable_prompt_expansion;
+            if (parsed.enable_safety_checker !== undefined) input.enable_safety_checker = parsed.enable_safety_checker;
+            if (parsed.video_output_type !== undefined) input.video_output_type = parsed.video_output_type;
+            if (parsed.video_quality !== undefined) input.video_quality = parsed.video_quality;
+            if (parsed.video_write_mode !== undefined) input.video_write_mode = parsed.video_write_mode;
+            if (parsed.sync_mode !== undefined) input.sync_mode = parsed.sync_mode;
+          }
+        } catch (e) {
+          // Not JSON, treat as regular prompt
+        }
+      }
+
       const { request_id } = await fal.queue.submit(model, {
         input,
       });
@@ -440,6 +469,7 @@ export const FAL_MODELS = [
   { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0' },
   { id: 'fal-ai/minimax/hailuo-02/pro/text-to-video', name: 'Minimax Hailuo 02 Pro Text-to-Video' },
   { id: 'fal-ai/minimax/hailuo-02-fast/image-to-video', name: 'Minimax Hailuo 02 Fast Image-to-Video' },
+  { id: 'fal-ai/ltx-2-19b/distilled/text-to-video', name: 'LTX-2 19B Text-to-Video with Audio' },
 ];
 
 // Helper constants for model identification
