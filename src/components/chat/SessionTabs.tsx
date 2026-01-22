@@ -44,6 +44,9 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
     if (type === 'video-generation') {
       provider = 'fal';
       model = 'fal-ai/minimax/hailuo-02/pro/text-to-video';
+    } else if (type === 'video-with-sound') {
+      provider = 'fal';
+      model = 'fal-ai/ltx-2-19b/distilled/text-to-video';
     }
     
     await createNewSession(provider, model, undefined, type);
@@ -117,6 +120,13 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
               >
                 <VideoCameraIcon className="w-4 h-4 mr-2" />
                 Video Generation
+              </button>
+              <button
+                onClick={() => handleNewSession('video-with-sound')}
+                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <VideoCameraIcon className="w-4 h-4 mr-2" />
+                Video with Sound
               </button>
             </div>
           </div>

@@ -4,7 +4,7 @@ export type Theme = 'light' | 'dark' | 'system';
 
 export type Provider = 'openrouter' | 'replicate' | 'fal';
 
-export type SessionType = 'chat' | 'songwriting' | 'video-generation';
+export type SessionType = 'chat' | 'songwriting' | 'video-generation' | 'video-with-sound';
 
 export interface APIConfig {
   provider: Provider;
