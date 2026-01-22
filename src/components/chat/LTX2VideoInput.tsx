@@ -98,7 +98,10 @@ export default function LTX2VideoInput({
       payload.camera_lora_scale = cameraLoraScale;
       payload.negative_prompt = negativePrompt;
       if (seed.trim()) {
-        payload.seed = parseInt(seed);
+        const parsedSeed = parseInt(seed);
+        if (!isNaN(parsedSeed)) {
+          payload.seed = parsedSeed;
+        }
       }
       payload.enable_prompt_expansion = enablePromptExpansion;
       payload.enable_safety_checker = enableSafetyChecker;
@@ -362,7 +365,7 @@ export default function LTX2VideoInput({
                 </label>
                 <select
                   value={acceleration}
-                  onChange={(e) => setAcceleration(e.target.value as any)}
+                  onChange={(e) => setAcceleration(e.target.value as 'none' | 'regular' | 'high' | 'full')}
                   disabled={disabled}
                   className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 >
@@ -422,7 +425,7 @@ export default function LTX2VideoInput({
                 </label>
                 <select
                   value={cameraLora}
-                  onChange={(e) => setCameraLora(e.target.value as any)}
+                  onChange={(e) => setCameraLora(e.target.value as 'dolly_in' | 'dolly_out' | 'dolly_left' | 'dolly_right' | 'jib_up' | 'jib_down' | 'static' | 'none')}
                   disabled={disabled}
                   className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 >
@@ -464,7 +467,7 @@ export default function LTX2VideoInput({
                 </label>
                 <select
                   value={videoOutputType}
-                  onChange={(e) => setVideoOutputType(e.target.value as any)}
+                  onChange={(e) => setVideoOutputType(e.target.value as 'X264 (.mp4)' | 'VP9 (.webm)' | 'PRORES4444 (.mov)' | 'GIF (.gif)')}
                   disabled={disabled}
                   className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 >
@@ -482,7 +485,7 @@ export default function LTX2VideoInput({
                 </label>
                 <select
                   value={videoQuality}
-                  onChange={(e) => setVideoQuality(e.target.value as any)}
+                  onChange={(e) => setVideoQuality(e.target.value as 'low' | 'medium' | 'high' | 'maximum')}
                   disabled={disabled}
                   className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 >
@@ -500,7 +503,7 @@ export default function LTX2VideoInput({
                 </label>
                 <select
                   value={videoWriteMode}
-                  onChange={(e) => setVideoWriteMode(e.target.value as any)}
+                  onChange={(e) => setVideoWriteMode(e.target.value as 'fast' | 'balanced' | 'small')}
                   disabled={disabled}
                   className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:opacity-50"
                 >
