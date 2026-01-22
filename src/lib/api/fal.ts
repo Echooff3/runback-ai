@@ -422,4 +422,6 @@ export const FAL_MODELS = [
   { id: 'fal-ai/llama-3-8b', name: 'Llama 3 8B' },
   { id: 'fal-ai/minimax-music/v1.5', name: 'Minimax Music 1.5' },
   { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0' },
+  { id: 'fal-ai/minimax/hailuo-02/pro/text-to-video', name: 'Minimax Hailuo 02 Pro Text-to-Video' },
+  { id: 'fal-ai/minimax/hailuo-02-fast/image-to-video', name: 'Minimax Hailuo 02 Fast Image-to-Video' },
 ];

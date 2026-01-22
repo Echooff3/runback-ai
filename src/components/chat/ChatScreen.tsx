@@ -19,6 +19,7 @@ import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
 import Flux2GenerationInput from './Flux2GenerationInput';
 import SongwritingScreen from './SongwritingScreen';
+import VideoGenerationScreen from './VideoGenerationScreen';
 import LoadingIndicator from './LoadingIndicator';
 import TopicChangeDivider from './TopicChangeDivider';
 import { OPENROUTER_MODELS, REPLICATE_MODELS, FAL_MODELS } from '../../lib/api';
@@ -729,6 +730,20 @@ export default function ChatScreen() {
         />
         <div className="flex-1 overflow-hidden">
           <SongwritingScreen />
+        </div>
+      </div>
+    );
+  }
+
+  if (currentSession?.type === 'video-generation') {
+    return (
+      <div className="h-screen overflow-hidden bg-white dark:bg-gray-900 flex flex-col">
+        <SessionTabs 
+          defaultProvider="fal"
+          defaultModel="fal-ai/minimax/hailuo-02/pro/text-to-video"
+        />
+        <div className="flex-1 overflow-hidden">
+          <VideoGenerationScreen />
         </div>
       </div>
     );
