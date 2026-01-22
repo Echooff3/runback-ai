@@ -169,6 +169,22 @@ export class FalClient {
         }
       }
 
+      // Special handling for Minimax video models which send JSON string as prompt
+      if (isVideoGenerationModel(model)) {
+        try {
+          // Check if prompt is a JSON string containing our video generation structure
+          const parsed = JSON.parse(prompt);
+          if (parsed.prompt) {
+            input.prompt = parsed.prompt;
+            if (parsed.prompt_optimizer !== undefined) input.prompt_optimizer = parsed.prompt_optimizer;
+            if (parsed.image_url) input.image_url = parsed.image_url;
+            if (parsed.duration) input.duration = parsed.duration;
+          }
+        } catch (e) {
+          // Not JSON, treat as regular prompt
+        }
+      }
+
       const { request_id } = await fal.queue.submit(model, {
         input,
       });
@@ -422,4 +438,16 @@ export const FAL_MODELS = [
   { id: 'fal-ai/llama-3-8b', name: 'Llama 3 8B' },
   { id: 'fal-ai/minimax-music/v1.5', name: 'Minimax Music 1.5' },
   { id: 'fal-ai/minimax-music/v2', name: 'Minimax Music 2.0' },
+  { id: 'fal-ai/minimax/hailuo-02/pro/text-to-video', name: 'Minimax Hailuo 02 Pro Text-to-Video' },
+  { id: 'fal-ai/minimax/hailuo-02-fast/image-to-video', name: 'Minimax Hailuo 02 Fast Image-to-Video' },
 ];
+
+// Helper constants for model identification
+export const VIDEO_GENERATION_MODELS = [
+  'fal-ai/minimax/hailuo-02/pro/text-to-video',
+  'fal-ai/minimax/hailuo-02-fast/image-to-video'
+] as const;
+
+export function isVideoGenerationModel(modelId: string): boolean {
+  return VIDEO_GENERATION_MODELS.includes(modelId as any);
+}

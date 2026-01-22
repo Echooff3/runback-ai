@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { PlusIcon, MusicalNoteIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, MusicalNoteIcon, ChatBubbleLeftRightIcon, VideoCameraIcon } from '@heroicons/react/24/outline';
 import { useChatStore } from '../../stores/chatStore';
 import { saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import SessionTab from './SessionTab';
@@ -37,11 +37,20 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
   }, []);
 
   const handleNewSession = async (type: SessionType = 'chat') => {
-    await createNewSession(defaultProvider, defaultModel, undefined, type);
+    // Set provider and model based on session type
+    let provider: Provider = defaultProvider;
+    let model: string | undefined = defaultModel;
+    
+    if (type === 'video-generation') {
+      provider = 'fal';
+      model = 'fal-ai/minimax/hailuo-02/pro/text-to-video';
+    }
+    
+    await createNewSession(provider, model, undefined, type);
     // Save the current provider/model as the last used
-    saveLastProvider(defaultProvider);
-    if (defaultModel) {
-      saveLastModel(defaultModel);
+    saveLastProvider(provider);
+    if (model) {
+      saveLastModel(model);
     }
     setShowNewSessionMenu(false);
   };
@@ -101,6 +110,13 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
               >
                 <MusicalNoteIcon className="w-4 h-4 mr-2" />
                 Songwriting
+              </button>
+              <button
+                onClick={() => handleNewSession('video-generation')}
+                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <VideoCameraIcon className="w-4 h-4 mr-2" />
+                Video Generation
               </button>
             </div>
           </div>

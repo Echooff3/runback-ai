@@ -4,7 +4,7 @@ import { Cog6ToothIcon, BookmarkIcon } from '@heroicons/react/24/outline';
 import { v4 as uuidv4 } from 'uuid';
 import { useChatStore } from '../../stores/chatStore';
 import { useSettingsStore } from '../../stores/settingsStore';
-import { getAIClient, estimateTokenCount } from '../../lib/api';
+import { getAIClient, estimateTokenCount, isVideoGenerationModel } from '../../lib/api';
 import { getLastProvider, getModelParameters, saveLastProvider, saveLastModel } from '../../lib/storage/localStorage';
 import { FalClient } from '../../lib/api/fal';
 import { TopicClassifier } from '../../lib/topicClassifier';
@@ -18,6 +18,7 @@ import EnhancedChatInput from './EnhancedChatInput';
 import MusicGenerationInput from './MusicGenerationInput';
 import FluxGenerationInput from './FluxGenerationInput';
 import Flux2GenerationInput from './Flux2GenerationInput';
+import VideoGenerationInput from './VideoGenerationInput';
 import SongwritingScreen from './SongwritingScreen';
 import LoadingIndicator from './LoadingIndicator';
 import TopicChangeDivider from './TopicChangeDivider';
@@ -63,6 +64,19 @@ export default function ChatScreen() {
   const [musicDraft, setMusicDraft] = useState<{ style: string; lyrics: string } | null>(null);
   const [fluxDraft, setFluxDraft] = useState<string>('');
   const [flux2Draft, setFlux2Draft] = useState<string>('');
+  const [videoDraft, setVideoDraft] = useState<{
+    mode: 'text-to-video' | 'image-to-video';
+    prompt: string;
+    imageUrl: string;
+    duration: '6' | '10';
+    promptOptimizer: boolean;
+  }>({
+    mode: 'text-to-video',
+    prompt: '',
+    imageUrl: '',
+    duration: '6',
+    promptOptimizer: true
+  });
   const [modelContextLength, setModelContextLength] = useState<number>(0);
   const [loadingStatus, setLoadingStatus] = useState<'connecting' | 'waiting' | 'streaming'>('connecting');
   const [loadingStartTime, setLoadingStartTime] = useState<number | null>(null);
@@ -642,6 +656,15 @@ export default function ChatScreen() {
           style: parsed.prompt,
           lyrics: parsed.lyrics_prompt
         });
+      } else if (parsed.prompt && (parsed.image_url !== undefined || parsed.duration !== undefined)) {
+        // Video generation draft
+        setVideoDraft({
+          mode: parsed.image_url ? 'image-to-video' : 'text-to-video',
+          prompt: parsed.prompt,
+          imageUrl: parsed.image_url || '',
+          duration: parsed.duration || '6',
+          promptOptimizer: parsed.prompt_optimizer ?? true
+        });
       } else if (parsed.prompt && selectedModel === 'fal-ai/flux/dev') {
         setFluxDraft(parsed.prompt);
       } else if (parsed.prompt && selectedModel === 'fal-ai/flux-2') {
@@ -733,6 +756,9 @@ export default function ChatScreen() {
       </div>
     );
   }
+
+  // Video generation type uses regular chat interface with custom input
+  // The rendering will be handled in the main return statement below
 
   return (
     <div className="h-screen overflow-hidden bg-white dark:bg-gray-900 flex flex-col">
@@ -878,6 +904,16 @@ export default function ChatScreen() {
           initialStyle={musicDraft?.style}
           initialLyrics={musicDraft?.lyrics}
           selectedModel={selectedModel}
+        />
+      ) : currentSession?.type === 'video-generation' || (selectedProvider === 'fal' && isVideoGenerationModel(selectedModel)) ? (
+        <VideoGenerationInput
+          onSend={handleSendMessage}
+          disabled={isLoading}
+          initialPrompt={videoDraft.prompt}
+          initialImageUrl={videoDraft.imageUrl}
+          initialDuration={videoDraft.duration}
+          initialPromptOptimizer={videoDraft.promptOptimizer}
+          initialMode={videoDraft.mode}
         />
       ) : selectedProvider === 'fal' && selectedModel === 'fal-ai/flux-2' ? (
         <Flux2GenerationInput

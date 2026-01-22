@@ -163,4 +163,37 @@ export class AiPolisherTasks {
       throw error;
     }
   }
+
+  static async polishVideoPrompt(
+    originalPrompt: string,
+    apiKey: string,
+    model: string
+  ): Promise<string> {
+    if (!originalPrompt.trim()) return '';
+
+    const client = new OpenRouterClient(apiKey);
+    
+    const systemPrompt = `You are an expert at creating detailed, cinematic video generation prompts. Your task is to enhance the provided video description to create the best possible video.
+    
+    Instructions:
+    - Take the user's input and expand it into a detailed, vivid description suitable for text-to-video generation.
+    - Include specific details about camera movements, lighting, atmosphere, actions, and visual style.
+    - Focus on visual elements, motion, and cinematography that will translate well to video.
+    - Keep the enhanced prompt under 2000 characters (the model's limit).
+    - Be descriptive but concise - every word should add visual value.
+    - Do not include technical camera settings or frame rates - focus on the visual narrative.
+    - Return ONLY the enhanced prompt text. Do not include any conversational text or explanations.`;
+
+    try {
+      const response = await client.sendMessage(model, [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: originalPrompt }
+      ]);
+
+      return response.content.trim();
+    } catch (error) {
+      console.error('Failed to polish video prompt:', error);
+      throw error;
+    }
+  }
 }
