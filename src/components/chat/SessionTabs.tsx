@@ -37,11 +37,20 @@ export default function SessionTabs({ defaultProvider, defaultModel }: SessionTa
   }, []);
 
   const handleNewSession = async (type: SessionType = 'chat') => {
-    await createNewSession(defaultProvider, defaultModel, undefined, type);
+    // Set provider and model based on session type
+    let provider: Provider = defaultProvider;
+    let model: string | undefined = defaultModel;
+    
+    if (type === 'video-generation') {
+      provider = 'fal';
+      model = 'fal-ai/minimax/hailuo-02/pro/text-to-video';
+    }
+    
+    await createNewSession(provider, model, undefined, type);
     // Save the current provider/model as the last used
-    saveLastProvider(defaultProvider);
-    if (defaultModel) {
-      saveLastModel(defaultModel);
+    saveLastProvider(provider);
+    if (model) {
+      saveLastModel(model);
     }
     setShowNewSessionMenu(false);
   };
